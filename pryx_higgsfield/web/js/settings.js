@@ -393,9 +393,41 @@ function updateMediaInputs(node, model) {
             : supported.has(input.name);
         input.hidden = !visible;
         input.tooltip = visible
-            ? `${input.name} input. The selected model supports ${[...supported].join(", ") || "no media"}.`
+            ? input.name === "references"
+                ? "Combined media from Reference Collector. Direct media inputs are added to this collection; all inputs share the model limits."
+                : input.name === "image" && model?.parameters?.some((p) => p.name === "image_url")
+                    ? "One start/source image. Use end_image for the final frame when supported."
+                    : `${input.name} connected directly from a matching ComfyUI loader or processing node. Counts toward the same limits as Reference Collector.`
             : `Hidden for the selected model; it does not accept ${input.name} references.`;
     }
+    const outputHints = {
+        video: "Generated video. Connect to Save Video or another VIDEO-compatible node. Empty in estimate-only mode.",
+        local_file: "Path of the downloaded video on this computer. auto_save chooses output versus temporary storage.",
+        remote_url: "Provider download links as JSON text. Not a local video input.",
+        request_id: "Provider request identifier for troubleshooting. Empty before a generation is submitted.",
+        credits: "Estimated cost in provider credits, not your balance or a final billing receipt.",
+        usd: "Estimated cost in USD, not your balance or a final billing receipt.",
+        status: "JSON text containing request status and diagnostic information.",
+    };
+    for (const output of node.outputs || []) {
+        if (outputHints[output.name]) output.tooltip = outputHints[output.name];
+    }
+}
+
+const MEDIA_LABELS = {
+    image_url: "Start/source image", end_image_url: "End image", last_image_url: "End image",
+    image_urls: "Reference images", video_url: "Source video", video_urls: "Reference videos",
+    audio_url: "Audio track", audio_urls: "Reference audio tracks",
+    file_url: "Document link", link_url: "Web page link",
+};
+
+function readableModelNote(text) {
+    let result = text.replace(/Use public media URLs; `asset:\/\/` references are not supported\.\s*/gi, "");
+    for (const [field, label] of Object.entries(MEDIA_LABELS).sort((a, b) => b[0].length - a[0].length)) {
+        result = result.replaceAll(field, label.toLowerCase());
+    }
+    return result.replaceAll("`", "").replace(/public(?:ly accessible)?\s+/gi, "")
+        .replace(/\bURLs\b/g, "connected media");
 }
 
 function updateModelInfo(node, model) {
@@ -411,13 +443,29 @@ function updateModelInfo(node, model) {
             serialize: false, hideOnZoom: false,
             getValue: () => "", setValue: () => {},
         });
-        widget.computeSize = () => [320, 240];
-        widget.options.getMinHeight = () => 240;
-        widget.options.getMaxHeight = () => 400;
-        widget.__pryxInfoElement = element;
+        const details = document.createElement("details");
+        details.open = node.properties?.pryx_model_info_expanded !== false;
+        const summary = document.createElement("summary");
+        summary.style.cssText = "cursor:pointer;font-weight:600;white-space:normal;";
+        const body = document.createElement("div");
+        body.style.paddingTop = "8px";
+        details.append(summary, body);
+        element.append(details);
+        details.addEventListener("toggle", () => {
+            node.properties ||= {};
+            node.properties.pryx_model_info_expanded = details.open;
+            node.setSize(node.computeSize());
+            node.setDirtyCanvas(true, true);
+        });
+        widget.computeSize = () => [320, details.open ? 240 : 48];
+        widget.options.getMinHeight = () => details.open ? 240 : 48;
+        widget.options.getMaxHeight = () => details.open ? 400 : 48;
+        widget.__pryxInfoElement = body;
+        widget.__pryxInfoSummary = summary;
     }
     const element = widget.__pryxInfoElement || widget.element;
     if (!element) return;
+    if (widget.__pryxInfoSummary) widget.__pryxInfoSummary.textContent = `${model?.display_name || "Model"} · Inputs & limits (click to expand/collapse)`;
     if (!model) {
         element.textContent = "INCOMPATIBLE MODEL\nThe connected model is not supported by this node. Select a matching capability in Model Catalog.";
         return;
@@ -426,12 +474,13 @@ function updateModelInfo(node, model) {
     const media = model.parameters.filter((p) => p.media_types?.length);
     if (!media.length) lines.push("No reference media accepted.");
     if (media.some((p) => p.media_types.some((kind) => ["image", "video", "audio"].includes(kind)))) {
-        lines.push("Connect local ComfyUI images, videos or audio directly, or via Reference Collector. The plugin uploads them automatically and supplies the public URLs required by the API. No manual hosting is needed. Connected media leaves your computer and is sent to the provider.");
+        lines.push("Connect media directly from ComfyUI, or combine several inputs with Reference Collector.");
     }
     for (const p of media) {
-        const count = p.type === "array" ? `${p.min_items ?? 0}–${p.max_items ?? "unspecified"}` : "1";
-        lines.push(`${p.name}: ${count} ${p.media_types.join("/")} · ${p.required ? "required" : "optional"}`);
-        if (p.description) lines.push(p.description.replaceAll("`", ""));
+        const count = p.type === "array"
+            ? `${p.min_items ?? 0}–${p.max_items ?? "no documented maximum"} when connected`
+            : "1";
+        lines.push(`${MEDIA_LABELS[p.name] || p.media_types.join("/")}: ${count} · ${p.required ? "required" : "optional"}`);
     }
     lines.push("", "OUTPUT");
     for (const name of ["resolution", "aspect_ratio", "duration", "output_format", "batch_size"]) {
@@ -442,9 +491,10 @@ function updateModelInfo(node, model) {
     if (model.parameters.some((p) => p.name === "resolution")) {
         lines.push("Resolution is the API quality/size tier, not width × height. Framing uses aspect_ratio when supported; otherwise the source media/model determines it.");
     }
-    if (model.notes?.length) lines.push("", "MODEL NOTES", ...model.notes.map((s) => s.replaceAll("`", "")));
+    if (model.notes?.length) lines.push("", "MODEL NOTES", ...model.notes.map(readableModelNote));
     if (model.id === "marketing-studio-image") lines.push("Enhanced mode: preset_id + 1 product image required; 1 optional model image. Direct mode: up to 16 images.");
     lines.push("", "Limits checked before upload. Media content, duration and account availability are also validated by the provider.");
+    if (media.length) lines.push("", "Technical note: connected media is uploaded to the provider automatically. No manual hosting is needed. Document/web links remain external links.");
     element.textContent = lines.join("\n");
 }
 
