@@ -71,31 +71,86 @@ function createCatalogRefreshSetting() {
     return createSettingsButton("Refresh catalog", refreshCatalog);
 }
 
-function openCredentialDialog() {
-    const existing = document.getElementById("pryx-higgsfield-credentials");
-    if (existing) existing.remove();
+function closeCredentialDialog() {
+    const overlay = document.getElementById("pryx-higgsfield-credentials");
+    if (!overlay) return;
+    overlay.__pryxClose?.();
+    overlay.remove();
+}
 
-    const dialog = document.createElement("dialog");
-    dialog.id = "pryx-higgsfield-credentials";
-    dialog.innerHTML =
-        '<form method="dialog" style="min-width: 360px">' +
-        '<h3>PRYX Higgsfield credentials</h3>' +
-        '<p>The secret is stored locally by ComfyUI and is never included in a workflow.</p>' +
-        '<label>Key ID<br><input name="key_id" autocomplete="off" required></label><br>' +
-        '<label>Secret<br><input name="secret" type="password" autocomplete="new-password" required></label><br>' +
-        '<output name="status" style="display:block; min-height:1.5em"></output>' +
-        '<button value="cancel">Cancel</button>' +
-        '<button type="button" data-action="validate">Validate estimate</button>' +
-        '<button type="button" data-action="save">Save locally</button>' +
+function openCredentialDialog(event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    closeCredentialDialog();
+
+    const overlay = document.createElement("div");
+    overlay.id = "pryx-higgsfield-credentials";
+    overlay.setAttribute("role", "presentation");
+    overlay.style.cssText =
+        "position: fixed; inset: 0; z-index: 10000; display: grid; " +
+        "place-items: center; padding: 24px; background: rgba(0, 0, 0, 0.68);";
+
+    const panel = document.createElement("section");
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-modal", "true");
+    panel.setAttribute("aria-labelledby", "pryx-higgsfield-credentials-title");
+    panel.style.cssText =
+        "width: min(520px, 100%); box-sizing: border-box; padding: 24px; " +
+        "border: 1px solid var(--border-color, #4b5563); border-radius: 14px; " +
+        "background: var(--interface-panel-surface, #202124); color: var(--fg-color, #fff); " +
+        "box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); font-family: inherit;";
+    panel.innerHTML =
+        '<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">' +
+        '<div>' +
+        '<h2 id="pryx-higgsfield-credentials-title" style="margin:0 0 8px; font-size:1.15rem;">PRYX Higgsfield credentials</h2>' +
+        '<p style="margin:0 0 20px; opacity:.75; line-height:1.45;">The credentials stay on this ComfyUI installation and never become workflow inputs.</p>' +
+        '</div>' +
+        '<button type="button" data-action="close" aria-label="Close" style="border:0; background:transparent; color:inherit; font-size:1.4rem; cursor:pointer;">×</button>' +
+        '</div>' +
+        '<form>' +
+        '<label style="display:block; margin-bottom:14px;">Key ID' +
+        '<input name="key_id" autocomplete="off" required style="display:block; box-sizing:border-box; width:100%; margin-top:6px; padding:10px 12px; border:1px solid var(--border-color, #4b5563); border-radius:8px; background:var(--comfy-input-bg, #151515); color:inherit;" />' +
+        '</label>' +
+        '<label style="display:block; margin-bottom:14px;">Secret' +
+        '<input name="secret" type="password" autocomplete="new-password" required style="display:block; box-sizing:border-box; width:100%; margin-top:6px; padding:10px 12px; border:1px solid var(--border-color, #4b5563); border-radius:8px; background:var(--comfy-input-bg, #151515); color:inherit;" />' +
+        '</label>' +
+        '<output name="status" aria-live="polite" style="display:block; min-height:1.5em; margin:4px 0 18px; opacity:.8;"></output>' +
+        '<div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">' +
+        '<button type="button" data-action="cancel" style="padding:9px 14px; border:1px solid var(--border-color, #4b5563); border-radius:8px; background:transparent; color:inherit; cursor:pointer;">Cancel</button>' +
+        '<button type="button" data-action="validate" style="padding:9px 14px; border:1px solid var(--border-color, #4b5563); border-radius:8px; background:transparent; color:inherit; cursor:pointer;">Validate estimate</button>' +
+        '<button type="button" data-action="save" style="padding:9px 14px; border:0; border-radius:8px; background:#4f46e5; color:white; cursor:pointer;">Save locally</button>' +
+        '</div>' +
         '</form>';
-    document.body.appendChild(dialog);
-    const form = dialog.querySelector("form");
+    overlay.appendChild(panel);
+
+    const form = panel.querySelector("form");
     const status = form.elements.status;
     const values = () => ({
         key_id: form.elements.key_id.value,
         secret: form.elements.secret.value,
     });
-    form.querySelector('[data-action="validate"]').addEventListener("click", async () => {
+    const close = () => {
+        document.removeEventListener("keydown", onKeyDown);
+        overlay.remove();
+    };
+    const onKeyDown = (keyEvent) => {
+        if (keyEvent.key === "Escape") {
+            keyEvent.preventDefault();
+            keyEvent.stopPropagation();
+            close();
+        }
+    };
+    overlay.__pryxClose = close;
+    overlay.addEventListener("click", (clickEvent) => {
+        if (clickEvent.target !== overlay) return;
+        clickEvent.preventDefault();
+        clickEvent.stopPropagation();
+        close();
+    });
+    panel.addEventListener("click", (clickEvent) => clickEvent.stopPropagation());
+    overlay.querySelector('[data-action="close"]').addEventListener("click", close);
+    overlay.querySelector('[data-action="cancel"]').addEventListener("click", close);
+    overlay.querySelector('[data-action="validate"]').addEventListener("click", async () => {
         status.textContent = "Validating...";
         try {
             const result = await requestJson(VALIDATE_ROUTE, { method: "POST", body: JSON.stringify(values()) });
@@ -104,7 +159,7 @@ function openCredentialDialog() {
             status.textContent = error.message;
         }
     });
-    form.querySelector('[data-action="save"]').addEventListener("click", async () => {
+    overlay.querySelector('[data-action="save"]').addEventListener("click", async () => {
         status.textContent = "Saving...";
         try {
             await requestJson(SETTINGS_ROUTE, { method: "PUT", body: JSON.stringify(values()) });
@@ -114,8 +169,14 @@ function openCredentialDialog() {
             status.textContent = error.message;
         }
     });
-    dialog.addEventListener("close", () => dialog.remove(), { once: true });
-    dialog.showModal();
+    form.addEventListener("submit", (submitEvent) => submitEvent.preventDefault());
+    const settingsDialog =
+        [...document.querySelectorAll('[role="dialog"]')].find((dialog) =>
+            dialog.contains(document.activeElement),
+        ) || document.querySelector('[role="dialog"]:not([aria-modal="true"])');
+    (settingsDialog || document.body).appendChild(overlay);
+    document.addEventListener("keydown", onKeyDown);
+    form.elements.key_id.focus();
 }
 
 async function refreshCatalog() {
