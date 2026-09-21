@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
-from ..catalog import Catalog, load_bundled_catalog
+from ..catalog import Catalog, runtime_catalog
 from ..client import HiggsfieldClient
 from ..errors import APIError, HiggsfieldError, MediaError, ValidationError
 from ..media import MediaArtifact, MediaStore, empty_image, extract_media_urls, upload_reference
@@ -73,24 +73,29 @@ def execute_generation(
     if timeout <= 0:
         raise ValidationError("timeout must be greater than zero.")
 
-    active_catalog = catalog or load_bundled_catalog()
+    active_catalog = catalog or runtime_catalog()
     model = active_catalog.get(model_id)
     if model.status.value == "unavailable":
         raise ValidationError(f"Model {model.display_name} is unavailable in the catalog.")
-    normalized = normalize_arguments(model, arguments, allow_unknown=allow_unknown)
+    ref_values = ReferenceCollection(references or ())
+    # Validate counts, required media, and parameter combinations BEFORE uploading.
+    preview = references_to_arguments(model, [
+        {"kind": ref.kind, "url": ref.url or f"https://local-reference.invalid/{index}", "field": ref.field}
+        for index, ref in enumerate(ref_values)
+    ]) if ref_values else {}
+    normalized = normalize_arguments(model, {**arguments, **preview}, allow_unknown=allow_unknown)
     start = time.monotonic()
     _progress(node_id, Phase.VALIDATE, None, start, message="Inputs validated.")
 
     owned_client = client is None
     hf_client = client or HiggsfieldClient.from_environment(timeout=timeout)
     try:
-        ref_values = ReferenceCollection(references or ())
         if ref_values:
             uploaded: list[dict[str, Any]] = []
             for index, reference in enumerate(ref_values):
                 _progress(node_id, Phase.UPLOAD, None, start, message=f"Uploading reference {index + 1}.")
                 url = upload_reference(hf_client, reference)
-                uploaded.append({"kind": reference.kind, "url": url})
+                uploaded.append({"kind": reference.kind, "url": url, "field": reference.field})
             normalized.update(references_to_arguments(model, uploaded))
             normalized = normalize_arguments(model, normalized, allow_unknown=allow_unknown)
 

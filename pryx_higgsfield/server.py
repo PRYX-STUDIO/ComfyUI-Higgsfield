@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Any
 
-from .catalog import CatalogManager
+from .catalog import CatalogManager, runtime_catalog
 from .credentials import CredentialStore, Credentials, default_user_directory, mask_key_id, resolve_credentials
 from .errors import HiggsfieldError, redact_secrets
 from .styles import StyleManager
@@ -93,7 +93,7 @@ def register_routes() -> None:
 
     async def get_catalog(request):
         try:
-            catalog = catalog_manager().load()
+            catalog = runtime_catalog()
             return web.json_response(
                 {
                     "schema_version": 1,

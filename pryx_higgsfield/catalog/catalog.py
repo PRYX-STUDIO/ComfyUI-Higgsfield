@@ -6,6 +6,7 @@ import json
 import os
 import tempfile
 import time
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 from urllib.error import HTTPError, URLError
@@ -97,6 +98,19 @@ def catalog_from_payload(payload: Mapping[str, Any], *, source: str) -> Catalog:
         source_date=str(payload["source_date"]),
         source=source,
     )
+
+
+@lru_cache(maxsize=1)
+def runtime_catalog() -> Catalog:
+    """One immutable schema for frontend, node definitions, and requests per process."""
+    bundled = load_bundled_catalog()
+    cached = CatalogManager(auto_refresh=False)._read_cache()
+    def version(catalog):
+        return tuple(int(part) for part in catalog.catalog_version.replace("-", ".").split("."))
+    try:
+        return cached if cached and version(cached) > version(bundled) else bundled
+    except ValueError:
+        return bundled
 
 
 def validate_catalog_payload(payload: Mapping[str, Any]) -> None:

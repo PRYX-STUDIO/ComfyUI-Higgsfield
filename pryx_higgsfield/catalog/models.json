@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "catalog_version": "2026-09-21.1",
+  "catalog_version": "2026-09-21.2",
   "source_date": "2026-09-21",
   "models": [
     {
@@ -12,18 +12,73 @@
       "capability": "image_generate",
       "output": "image",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "aspect_ratio", "type": "string", "default": "4:3", "choices": ["1:1", "4:3", "3:4", "16:9", "9:16"]},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["720p", "1080p"]},
-        {"name": "style_id", "type": "string"},
-        {"name": "batch_size", "type": "integer", "default": 1, "minimum": 1, "maximum": 4},
-        {"name": "enhance_prompt", "type": "boolean", "default": true},
-        {"name": "seed", "type": "integer", "minimum": 0}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Text description of the image to generate."
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "4:3",
+          "description": "Supported values: `9:16`, `16:9`, `4:3`, `3:4`, `1:1`, `2:3`, `3:2`.",
+          "choices": [
+            "9:16",
+            "16:9",
+            "4:3",
+            "3:4",
+            "1:1",
+            "2:3",
+            "3:2"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Supported values: `720p`, `1080p`.",
+          "choices": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "style_id",
+          "type": "string",
+          "description": "SOUL style UUID returned by the [SOUL styles endpoint](#list-soul-styles). Omit this field to use the default General style."
+        },
+        {
+          "name": "batch_size",
+          "type": "integer",
+          "default": 1,
+          "description": "Number of images to generate. Supported values: `1`, `4`.",
+          "choices": [
+            1,
+            4
+          ]
+        },
+        {
+          "name": "enhance_prompt",
+          "type": "boolean",
+          "default": true,
+          "description": "Enhance the prompt using the selected SOUL style before image generation."
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "description": "Seed from `1` to `1000000`. Omit it to generate a random seed.",
+          "minimum": 1,
+          "maximum": 1000000
+        }
       ],
       "result_field": "images",
       "docs_source": "https://docs.higgsfield.ai/docs/models/soul-2/generate.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "input_media": [],
+      "max_references": null,
+      "notes": []
     },
     {
       "id": "soul-cinema",
@@ -34,17 +89,68 @@
       "capability": "image_generate",
       "output": "image",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "aspect_ratio", "type": "string", "default": "4:3", "choices": ["1:1", "4:3", "3:4", "16:9", "9:16"]},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["720p", "1080p"]},
-        {"name": "batch_size", "type": "integer", "default": 1, "minimum": 1, "maximum": 4},
-        {"name": "enhance_prompt", "type": "boolean", "default": true},
-        {"name": "seed", "type": "integer", "minimum": 0}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Text description of the cinematic image to generate."
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "4:3",
+          "description": "Supported values: `9:16`, `16:9`, `4:3`, `3:4`, `1:1`, `2:3`, `3:2`.",
+          "choices": [
+            "9:16",
+            "16:9",
+            "4:3",
+            "3:4",
+            "1:1",
+            "2:3",
+            "3:2"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Supported values: `720p`, `1080p`.",
+          "choices": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "batch_size",
+          "type": "integer",
+          "default": 1,
+          "description": "Number of images to generate. Supported values: `1`, `4`.",
+          "choices": [
+            1,
+            4
+          ]
+        },
+        {
+          "name": "enhance_prompt",
+          "type": "boolean",
+          "default": true,
+          "description": "Enhance the supplied prompt for SOUL Cinema before generation."
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "description": "Seed from `1` to `1000000`. Omit it to generate a random seed.",
+          "minimum": 1,
+          "maximum": 1000000
+        }
       ],
       "result_field": "images",
       "docs_source": "https://docs.higgsfield.ai/docs/models/soul-cinema/generate.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "input_media": [],
+      "max_references": null,
+      "notes": []
     },
     {
       "id": "soul-standard",
@@ -55,18 +161,81 @@
       "capability": "image_generate",
       "output": "image",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "aspect_ratio", "type": "string", "default": "4:3", "choices": ["1:1", "4:3", "3:4", "16:9", "9:16"]},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["720p", "1080p"]},
-        {"name": "style_id", "type": "string"},
-        {"name": "batch_size", "type": "integer", "default": 1, "minimum": 1, "maximum": 4},
-        {"name": "enhance_prompt", "type": "boolean", "default": true},
-        {"name": "seed", "type": "integer", "minimum": 0}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Text description of the image to generate."
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "4:3",
+          "description": "Supported values: `9:16`, `16:9`, `4:3`, `3:4`, `1:1`, `2:3`, `3:2`.",
+          "choices": [
+            "9:16",
+            "16:9",
+            "4:3",
+            "3:4",
+            "1:1",
+            "2:3",
+            "3:2"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Supported values: `720p`, `1080p`.",
+          "choices": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "style_id",
+          "type": "string",
+          "description": "SOUL style UUID returned by the [SOUL styles endpoint](#list-soul-styles). Omit this field to use the default General style."
+        },
+        {
+          "name": "style_strength",
+          "type": "number",
+          "default": 1.0,
+          "description": "Strength of the selected style from `0` to `1`.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        {
+          "name": "batch_size",
+          "type": "integer",
+          "default": 1,
+          "description": "Number of images to generate. Supported values: `1`, `4`.",
+          "choices": [
+            1,
+            4
+          ]
+        },
+        {
+          "name": "enhance_prompt",
+          "type": "boolean",
+          "default": true,
+          "description": "Enhance the prompt using the selected SOUL style before image generation."
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "description": "Seed from `1` to `1000000`. Omit it to generate a random seed.",
+          "minimum": 1,
+          "maximum": 1000000
+        }
       ],
       "result_field": "images",
       "docs_source": "https://docs.higgsfield.ai/docs/models/soul-standard/generate.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "input_media": [],
+      "max_references": null,
+      "notes": []
     },
     {
       "id": "marketing-studio-image",
@@ -77,19 +246,90 @@
       "capability": "image_edit",
       "output": "image",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "image_urls", "type": "array", "min_items": 1, "max_items": 4, "media_types": ["image"]},
-        {"name": "aspect_ratio", "type": "string", "default": "4:3", "choices": ["1:1", "4:3", "3:4", "16:9", "9:16", "auto"]},
-        {"name": "resolution", "type": "string", "default": "1080p", "choices": ["720p", "1080p"]},
-        {"name": "enhance_prompt", "type": "boolean", "default": false},
-        {"name": "preset_id", "type": "string"}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Campaign instructions from 1 to 5,000 characters."
+        },
+        {
+          "name": "image_urls",
+          "type": "array",
+          "description": "Publicly accessible reference image URLs. Direct mode accepts up to 16. Enhanced mode requires one product image and accepts one optional model image, in that order.",
+          "max_items": 16,
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "2k",
+          "description": "Output resolution. Supported values: `1k`, `2k`, `4k`.",
+          "choices": [
+            "1k",
+            "2k",
+            "4k"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "description": "Supported values: `auto`, `1:1`, `3:2`, `2:3`, `4:3`, `3:4`, `16:9`, `9:16`, `21:9`. If omitted, direct mode uses a square output. In enhanced mode, `auto` or an omitted value uses the selected preset's aspect ratio.",
+          "choices": [
+            "auto",
+            "1:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9"
+          ]
+        },
+        {
+          "name": "quality",
+          "type": "string",
+          "default": "high",
+          "description": "Supported values: `low`, `medium`, `high`. Enhanced mode always renders at `high` quality.",
+          "choices": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        {
+          "name": "moderation",
+          "type": "string",
+          "default": "auto",
+          "description": "Supported values: `auto`, `low`.",
+          "choices": [
+            "auto",
+            "low"
+          ]
+        },
+        {
+          "name": "enhance_prompt",
+          "type": "boolean",
+          "default": false,
+          "description": "Build a preset-guided campaign composition. When `true`, `preset_id` and at least one `image_urls` item are required."
+        },
+        {
+          "name": "preset_id",
+          "type": "string",
+          "description": "UUID returned by the [Marketing Studio presets endpoint](#list-marketing-studio-presets). Required when `enhance_prompt` is `true`."
+        }
       ],
-      "input_media": ["image"],
-      "max_references": 4,
+      "input_media": [
+        "image"
+      ],
+      "max_references": null,
       "result_field": "images",
       "docs_source": "https://docs.higgsfield.ai/docs/models/marketing-studio-image/generate-and-edit.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": []
     },
     {
       "id": "recraft-v4-1-pro",
@@ -100,15 +340,72 @@
       "capability": "image_generate",
       "output": "image",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "aspect_ratio", "type": "string", "default": "1:1", "choices": ["1:1", "4:5", "3:4", "4:3", "5:4", "16:9", "9:16"]},
-        {"name": "style", "type": "string"},
-        {"name": "seed", "type": "integer", "minimum": 0}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Text description of the image to generate, from `1` to `10,000` characters."
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "2k",
+          "description": "Output resolution. Recraft V4.1 Pro uses `2k`.",
+          "choices": [
+            "2k"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "1:1",
+          "description": "Supported values: `1:1`, `2:1`, `1:2`, `3:2`, `2:3`, `4:3`, `3:4`, `5:4`, `4:5`, `6:10`, `14:10`, `10:14`, `16:9`, `9:16`.",
+          "choices": [
+            "1:1",
+            "2:1",
+            "1:2",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "5:4",
+            "4:5",
+            "6:10",
+            "14:10",
+            "10:14",
+            "16:9",
+            "9:16"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "string",
+          "default": "jpg",
+          "description": "Output file format. Supported values: `png`, `jpg`, `webp`.",
+          "choices": [
+            "png",
+            "jpg",
+            "webp"
+          ]
+        },
+        {
+          "name": "colors",
+          "type": "array",
+          "description": "Optional palette. Each item contains `rgb`, an array of three integers from `0` to `255`."
+        },
+        {
+          "name": "background_color",
+          "type": "object",
+          "description": "Optional background color as `{ \"rgb\": [red, green, blue] }`. The `rgb` array must contain exactly three integers from `0` to `255`."
+        }
       ],
       "result_field": "images",
       "docs_source": "https://docs.higgsfield.ai/docs/models/recraft-v4-1-pro/generate.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "input_media": [],
+      "max_references": null,
+      "notes": []
     },
     {
       "id": "grok-image-2",
@@ -119,18 +416,70 @@
       "capability": "image_edit",
       "output": "image",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "quality", "type": "string", "default": "medium", "choices": ["low", "medium", "high"]},
-        {"name": "image_urls", "type": "array", "min_items": 1, "max_items": 3, "media_types": ["image"]},
-        {"name": "resolution", "type": "string", "default": "1k", "choices": ["1k", "2k"]},
-        {"name": "aspect_ratio", "type": "string", "default": "auto", "choices": ["auto", "1:1", "4:3", "3:4", "16:9", "9:16"]}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Natural-language instructions describing the desired output."
+        },
+        {
+          "name": "quality",
+          "type": "string",
+          "default": "medium",
+          "description": "Generation quality preset. Supported values: `low`, `medium`.",
+          "choices": [
+            "low",
+            "medium"
+          ]
+        },
+        {
+          "name": "image_urls",
+          "type": "array",
+          "description": "Publicly accessible reference image URLs. Accepts `0`–`10` items.",
+          "min_items": 0,
+          "max_items": 10,
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "1k",
+          "description": "Output resolution. Supported values: `1k`, `2k`.",
+          "choices": [
+            "1k",
+            "2k"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "auto",
+          "description": "Output aspect ratio. Supported values: `auto`, `1:1`, `1:2`, `2:1`, `3:2`, `2:3`, `4:3`, `3:4`, `16:9`, `9:16`.",
+          "choices": [
+            "auto",
+            "1:1",
+            "1:2",
+            "2:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16"
+          ]
+        }
       ],
-      "input_media": ["image"],
-      "max_references": 3,
+      "input_media": [
+        "image"
+      ],
+      "max_references": null,
       "result_field": "images",
       "docs_source": "https://docs.higgsfield.ai/docs/models/grok-image-2/generate-and-edit.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": []
     },
     {
       "id": "seedance-2-text-to-video",
@@ -141,17 +490,62 @@
       "capability": "text_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["480p", "720p"]},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 4, "maximum": 15},
-        {"name": "aspect_ratio", "type": "string", "default": "16:9", "choices": ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "output_format", "type": "string", "default": "mp4", "choices": ["mp4", "mov"]}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Text instructions describing the desired output. Must not be empty when provided."
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Output video resolution. Supported values: `480p`, `720p`, `1080p`, `4k`.",
+          "choices": [
+            "480p",
+            "720p",
+            "1080p",
+            "4k"
+          ]
+        },
+        {
+          "name": "generate_audio",
+          "type": "boolean",
+          "default": true,
+          "description": "Generate synchronized audio for the output video."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `4`–`15`.",
+          "minimum": 4,
+          "maximum": 15
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "16:9",
+          "description": "Output aspect ratio. Use an explicit ratio for reference-to-video requests. Supported values: `16:9`, `4:3`, `1:1`, `3:4`, `9:16`, `21:9`.",
+          "choices": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16",
+            "21:9"
+          ]
+        }
       ],
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/seedance-2/text-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "input_media": [],
+      "max_references": null,
+      "notes": [
+        "This endpoint does not accept media inputs. Automatic duration (`-1`) is not supported."
+      ]
     },
     {
       "id": "seedance-2-image-to-video",
@@ -162,18 +556,66 @@
       "capability": "image_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string"},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["480p", "720p"]},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 4, "maximum": 15},
-        {"name": "image_url", "type": "string", "required": true, "media_types": ["image"]},
-        {"name": "output_format", "type": "string", "default": "mp4", "choices": ["mp4", "mov"]}
+        {
+          "name": "prompt",
+          "type": "string",
+          "description": "Text instructions describing the desired output. Must not be empty when provided."
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Output video resolution. Supported values: `480p`, `720p`, `1080p`, `4k`.",
+          "choices": [
+            "480p",
+            "720p",
+            "1080p",
+            "4k"
+          ]
+        },
+        {
+          "name": "generate_audio",
+          "type": "boolean",
+          "default": true,
+          "description": "Generate synchronized audio for the output video."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `4`–`15`.",
+          "minimum": 4,
+          "maximum": 15
+        },
+        {
+          "name": "image_url",
+          "type": "string",
+          "required": true,
+          "description": "Public URL of the first frame.",
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "end_image_url",
+          "type": "string",
+          "description": "Optional public URL of the last frame.",
+          "media_types": [
+            "image"
+          ]
+        }
       ],
-      "input_media": ["image"],
-      "max_references": 1,
+      "input_media": [
+        "image"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/seedance-2/image-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": [
+        "Use public media URLs; `asset://` references are not supported. Framing follows the input image. Do not send reference arrays or `video_url`. Automatic duration (`-1`) is not supported."
+      ]
     },
     {
       "id": "seedance-2-reference-to-video",
@@ -184,22 +626,95 @@
       "capability": "reference_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string"},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["480p", "720p"]},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 4, "maximum": 15},
-        {"name": "aspect_ratio", "type": "string", "default": "16:9", "choices": ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "image_urls", "type": "array", "min_items": 1, "max_items": 30, "media_types": ["image"]},
-        {"name": "video_urls", "type": "array", "min_items": 1, "max_items": 10, "media_types": ["video"]},
-        {"name": "audio_urls", "type": "array", "min_items": 1, "max_items": 10, "media_types": ["audio"]},
-        {"name": "output_format", "type": "string", "default": "mp4", "choices": ["mp4", "mov"]}
+        {
+          "name": "prompt",
+          "type": "string",
+          "description": "Text instructions describing the desired output. Must not be empty when provided."
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Output video resolution. Supported values: `480p`, `720p`, `1080p`, `4k`.",
+          "choices": [
+            "480p",
+            "720p",
+            "1080p",
+            "4k"
+          ]
+        },
+        {
+          "name": "generate_audio",
+          "type": "boolean",
+          "default": true,
+          "description": "Generate synchronized audio for the output video."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `4`–`15`.",
+          "minimum": 4,
+          "maximum": 15
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "16:9",
+          "description": "Output aspect ratio. Use an explicit ratio for reference-to-video requests. Supported values: `16:9`, `4:3`, `1:1`, `3:4`, `9:16`, `21:9`.",
+          "choices": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16",
+            "21:9"
+          ]
+        },
+        {
+          "name": "image_urls",
+          "type": "array",
+          "description": "Public reference image URLs. Accepts `1`–`9` URLs when provided.",
+          "min_items": 1,
+          "max_items": 9,
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "video_urls",
+          "type": "array",
+          "description": "Public reference video URLs. Accepts `1`–`3` URLs when provided.",
+          "min_items": 1,
+          "max_items": 3,
+          "media_types": [
+            "video"
+          ]
+        },
+        {
+          "name": "audio_urls",
+          "type": "array",
+          "description": "Public reference audio URLs. Accepts `1`–`3` URLs when provided.",
+          "min_items": 1,
+          "max_items": 3,
+          "media_types": [
+            "audio"
+          ]
+        }
       ],
-      "input_media": ["image", "video", "audio"],
-      "max_references": 30,
+      "input_media": [
+        "audio",
+        "image",
+        "video"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/seedance-2/reference-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": [
+        "Use public media URLs; `asset://` references are not supported. Provide at least one reference image or video. Set an explicit `aspect_ratio`. Automatic duration (`-1`) is not supported."
+      ]
     },
     {
       "id": "seedance-2-5-text-to-video",
@@ -210,17 +725,70 @@
       "capability": "text_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["480p", "720p"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 4, "maximum": 30},
-        {"name": "aspect_ratio", "type": "string", "default": "16:9", "choices": ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"]},
-        {"name": "output_format", "type": "string", "default": "mp4", "choices": ["mp4", "mov"]}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Text instructions describing the desired output. Must not be empty when provided."
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Output video resolution. Supported values: `480p`, `720p`.",
+          "choices": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "generate_audio",
+          "type": "boolean",
+          "default": true,
+          "description": "Generate synchronized audio for the output video."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `4`–`30`.",
+          "minimum": 4,
+          "maximum": 30
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "16:9",
+          "description": "Output aspect ratio. Use an explicit ratio for reference-to-video requests. Supported values: `16:9`, `4:3`, `1:1`, `3:4`, `9:16`, `21:9`.",
+          "choices": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16",
+            "21:9"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "string",
+          "default": "mp4",
+          "description": "Container format of the output video. Supported values: `mp4`, `mov`.",
+          "choices": [
+            "mp4",
+            "mov"
+          ]
+        }
       ],
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/seedance-2-5/text-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "input_media": [],
+      "max_references": null,
+      "notes": [
+        "This endpoint does not accept media inputs. Automatic duration (`-1`) is not supported."
+      ]
     },
     {
       "id": "seedance-2-5-image-to-video",
@@ -231,19 +799,74 @@
       "capability": "image_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string"},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["480p", "720p"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 4, "maximum": 30},
-        {"name": "image_url", "type": "string", "required": true, "media_types": ["image"]},
-        {"name": "output_format", "type": "string", "default": "mp4", "choices": ["mp4", "mov"]}
+        {
+          "name": "prompt",
+          "type": "string",
+          "description": "Text instructions describing the desired output. Must not be empty when provided."
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Output video resolution. Supported values: `480p`, `720p`.",
+          "choices": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "generate_audio",
+          "type": "boolean",
+          "default": true,
+          "description": "Generate synchronized audio for the output video."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `4`–`30`.",
+          "minimum": 4,
+          "maximum": 30
+        },
+        {
+          "name": "output_format",
+          "type": "string",
+          "default": "mp4",
+          "description": "Container format of the output video. Supported values: `mp4`, `mov`.",
+          "choices": [
+            "mp4",
+            "mov"
+          ]
+        },
+        {
+          "name": "image_url",
+          "type": "string",
+          "required": true,
+          "description": "Public URL of the first frame.",
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "end_image_url",
+          "type": "string",
+          "description": "Optional public URL of the last frame.",
+          "media_types": [
+            "image"
+          ]
+        }
       ],
-      "input_media": ["image"],
-      "max_references": 1,
+      "input_media": [
+        "image"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/seedance-2-5/image-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": [
+        "Use public media URLs; `asset://` references are not supported. Framing follows the input image. Do not send reference arrays or `video_url`. Automatic duration (`-1`) is not supported."
+      ]
     },
     {
       "id": "seedance-2-5-reference-to-video",
@@ -254,22 +877,103 @@
       "capability": "reference_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string"},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["480p", "720p"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 4, "maximum": 30},
-        {"name": "aspect_ratio", "type": "string", "default": "16:9", "choices": ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"]},
-        {"name": "image_urls", "type": "array", "min_items": 1, "max_items": 30, "media_types": ["image"]},
-        {"name": "video_urls", "type": "array", "min_items": 1, "max_items": 10, "media_types": ["video"]},
-        {"name": "audio_urls", "type": "array", "min_items": 1, "max_items": 10, "media_types": ["audio"]},
-        {"name": "output_format", "type": "string", "default": "mp4", "choices": ["mp4", "mov"]}
+        {
+          "name": "prompt",
+          "type": "string",
+          "description": "Text instructions describing the desired output. Must not be empty when provided."
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Output video resolution. Supported values: `480p`, `720p`.",
+          "choices": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "generate_audio",
+          "type": "boolean",
+          "default": true,
+          "description": "Generate synchronized audio for the output video."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `4`–`30`.",
+          "minimum": 4,
+          "maximum": 30
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "16:9",
+          "description": "Output aspect ratio. Use an explicit ratio for reference-to-video requests. Supported values: `16:9`, `4:3`, `1:1`, `3:4`, `9:16`, `21:9`.",
+          "choices": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16",
+            "21:9"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "string",
+          "default": "mp4",
+          "description": "Container format of the output video. Supported values: `mp4`, `mov`.",
+          "choices": [
+            "mp4",
+            "mov"
+          ]
+        },
+        {
+          "name": "image_urls",
+          "type": "array",
+          "description": "Public reference image URLs. Accepts `1`–`30` URLs when provided.",
+          "min_items": 1,
+          "max_items": 30,
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "video_urls",
+          "type": "array",
+          "description": "Public reference video URLs. Accepts `1`–`10` URLs when provided.",
+          "min_items": 1,
+          "max_items": 10,
+          "media_types": [
+            "video"
+          ]
+        },
+        {
+          "name": "audio_urls",
+          "type": "array",
+          "description": "Public reference audio URLs. Accepts `1`–`10` URLs when provided.",
+          "min_items": 1,
+          "max_items": 10,
+          "media_types": [
+            "audio"
+          ]
+        }
       ],
-      "input_media": ["image", "video", "audio"],
-      "max_references": 30,
+      "input_media": [
+        "audio",
+        "image",
+        "video"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/seedance-2-5/reference-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": [
+        "Use public media URLs; `asset://` references are not supported. Provide at least one reference image, video, or audio file. Set an explicit `aspect_ratio`. Automatic duration (`-1`) is not supported."
+      ]
     },
     {
       "id": "seedance-2-5-video-edit",
@@ -280,21 +984,91 @@
       "capability": "video_edit",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["480p", "720p"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "output_format", "type": "string", "default": "mp4", "choices": ["mp4", "mov"]},
-        {"name": "video_url", "type": "string", "required": true, "media_types": ["video"]},
-        {"name": "image_urls", "type": "array", "max_items": 10, "media_types": ["image"]},
-        {"name": "video_urls", "type": "array", "max_items": 10, "media_types": ["video"]},
-        {"name": "audio_urls", "type": "array", "max_items": 10, "media_types": ["audio"]}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Text instructions describing the desired output. Must not be empty when provided."
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Output video resolution. Supported values: `480p`, `720p`.",
+          "choices": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "generate_audio",
+          "type": "boolean",
+          "default": true,
+          "description": "Generate synchronized audio for the output video."
+        },
+        {
+          "name": "output_format",
+          "type": "string",
+          "default": "mp4",
+          "description": "Container format of the output video. Supported values: `mp4`, `mov`.",
+          "choices": [
+            "mp4",
+            "mov"
+          ]
+        },
+        {
+          "name": "video_url",
+          "type": "string",
+          "required": true,
+          "description": "Public URL of the source video to edit or extend.",
+          "media_types": [
+            "video"
+          ]
+        },
+        {
+          "name": "image_urls",
+          "type": "array",
+          "description": "Public reference image URLs. Accepts `1`–`30` URLs when provided.",
+          "min_items": 1,
+          "max_items": 30,
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "video_urls",
+          "type": "array",
+          "description": "Public reference video URLs. Accepts `1`–`10` URLs when provided.",
+          "min_items": 1,
+          "max_items": 10,
+          "media_types": [
+            "video"
+          ]
+        },
+        {
+          "name": "audio_urls",
+          "type": "array",
+          "description": "Public reference audio URLs. Accepts `1`–`10` URLs when provided.",
+          "min_items": 1,
+          "max_items": 10,
+          "media_types": [
+            "audio"
+          ]
+        }
       ],
-      "input_media": ["video", "image", "audio"],
-      "max_references": 10,
+      "input_media": [
+        "audio",
+        "image",
+        "video"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/seedance-2-5/video-edit.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": [
+        "Use public media URLs; `asset://` references are not supported. Framing follows the source video. First/last-frame inputs are not accepted. Omit `duration`; the source video determines output length."
+      ]
     },
     {
       "id": "seedance-2-5-video-extend",
@@ -305,22 +1079,99 @@
       "capability": "video_extend",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["480p", "720p"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 4, "maximum": 30},
-        {"name": "output_format", "type": "string", "default": "mp4", "choices": ["mp4", "mov"]},
-        {"name": "video_url", "type": "string", "required": true, "media_types": ["video"]},
-        {"name": "image_urls", "type": "array", "max_items": 10, "media_types": ["image"]},
-        {"name": "video_urls", "type": "array", "max_items": 10, "media_types": ["video"]},
-        {"name": "audio_urls", "type": "array", "max_items": 10, "media_types": ["audio"]}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Text instructions describing the desired output. Must not be empty when provided."
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Output video resolution. Supported values: `480p`, `720p`.",
+          "choices": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "generate_audio",
+          "type": "boolean",
+          "default": true,
+          "description": "Generate synchronized audio for the output video."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `4`–`30`.",
+          "minimum": 4,
+          "maximum": 30
+        },
+        {
+          "name": "output_format",
+          "type": "string",
+          "default": "mp4",
+          "description": "Container format of the output video. Supported values: `mp4`, `mov`.",
+          "choices": [
+            "mp4",
+            "mov"
+          ]
+        },
+        {
+          "name": "video_url",
+          "type": "string",
+          "required": true,
+          "description": "Public URL of the source video to edit or extend.",
+          "media_types": [
+            "video"
+          ]
+        },
+        {
+          "name": "image_urls",
+          "type": "array",
+          "description": "Public reference image URLs. Accepts `1`–`30` URLs when provided.",
+          "min_items": 1,
+          "max_items": 30,
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "video_urls",
+          "type": "array",
+          "description": "Public reference video URLs. Accepts `1`–`10` URLs when provided.",
+          "min_items": 1,
+          "max_items": 10,
+          "media_types": [
+            "video"
+          ]
+        },
+        {
+          "name": "audio_urls",
+          "type": "array",
+          "description": "Public reference audio URLs. Accepts `1`–`10` URLs when provided.",
+          "min_items": 1,
+          "max_items": 10,
+          "media_types": [
+            "audio"
+          ]
+        }
       ],
-      "input_media": ["video", "image", "audio"],
-      "max_references": 10,
+      "input_media": [
+        "audio",
+        "image",
+        "video"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/seedance-2-5/video-extend.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": [
+        "Use public media URLs; `asset://` references are not supported. Framing follows the source video. First/last-frame inputs are not accepted. Automatic duration (`-1`) is not supported."
+      ]
     },
     {
       "id": "kling-3-standard-text-to-video",
@@ -331,18 +1182,74 @@
       "capability": "text_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 3, "maximum": 15},
-        {"name": "aspect_ratio", "type": "string", "default": "16:9", "choices": ["16:9", "9:16", "1:1"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "multi_shots", "type": "boolean", "default": false},
-        {"name": "shots", "type": "array", "max_items": 6},
-        {"name": "cfg_scale", "type": "number", "minimum": 0, "maximum": 1}
+        {
+          "name": "sound",
+          "type": "string",
+          "default": "on",
+          "description": "Enable or disable generated sound. Supported values: `on`, `off`.",
+          "choices": [
+            "on",
+            "off"
+          ]
+        },
+        {
+          "name": "prompt",
+          "type": "string",
+          "description": "Provide a prompt describing the desired output, as shown in the examples. Kling uses up to the first `2,500` characters."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `3`–`15`.",
+          "minimum": 3,
+          "maximum": 15
+        },
+        {
+          "name": "elements",
+          "type": "array",
+          "description": "Reusable Kling element IDs. Each item must be a string."
+        },
+        {
+          "name": "cfg_scale",
+          "type": "number",
+          "default": 0.5,
+          "description": "How strongly the generation follows the prompt. Supported range: `0`–`1` in increments of `0.01`.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        {
+          "name": "multi_shots",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable a multi-shot sequence."
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "16:9",
+          "description": "Output aspect ratio. Supported values: `16:9`, `9:16`, `1:1`.",
+          "choices": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ]
+        },
+        {
+          "name": "multi_prompt",
+          "type": "array",
+          "description": "Ordered shot definitions used when `multi_shots` is `true`. Accepts `1`–`6` objects; for each shot, provide `prompt` (up to `512` characters) and `duration` (`1`–`15` seconds).",
+          "min_items": 1,
+          "max_items": 6
+        }
       ],
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/kling-3/standard-text-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "input_media": [],
+      "max_references": null,
+      "notes": []
     },
     {
       "id": "kling-3-standard-image-to-video",
@@ -353,20 +1260,82 @@
       "capability": "image_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 3, "maximum": 15},
-        {"name": "image_url", "type": "string", "required": true, "media_types": ["image"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "multi_shots", "type": "boolean", "default": false},
-        {"name": "shots", "type": "array", "max_items": 6},
-        {"name": "cfg_scale", "type": "number", "minimum": 0, "maximum": 1}
+        {
+          "name": "sound",
+          "type": "string",
+          "default": "on",
+          "description": "Enable or disable generated sound. Supported values: `on`, `off`.",
+          "choices": [
+            "on",
+            "off"
+          ]
+        },
+        {
+          "name": "prompt",
+          "type": "string",
+          "description": "Provide a prompt describing the desired output, as shown in the examples. Kling uses up to the first `2,500` characters."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `3`–`15`.",
+          "minimum": 3,
+          "maximum": 15
+        },
+        {
+          "name": "elements",
+          "type": "array",
+          "description": "Reusable Kling element IDs. Each item must be a string."
+        },
+        {
+          "name": "cfg_scale",
+          "type": "number",
+          "default": 0.5,
+          "description": "How strongly the generation follows the prompt. Supported range: `0`–`1` in increments of `0.01`.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        {
+          "name": "image_url",
+          "type": "string",
+          "required": true,
+          "description": "Publicly accessible source image URL.",
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "multi_shots",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable a multi-shot sequence."
+        },
+        {
+          "name": "multi_prompt",
+          "type": "array",
+          "description": "Ordered shot definitions used when `multi_shots` is `true`. Accepts `1`–`6` objects; for each shot, provide `prompt` (up to `512` characters) and `duration` (`1`–`15` seconds).",
+          "min_items": 1,
+          "max_items": 6
+        },
+        {
+          "name": "last_image_url",
+          "type": "string",
+          "description": "Optional ending-frame image URL.",
+          "media_types": [
+            "image"
+          ]
+        }
       ],
-      "input_media": ["image"],
-      "max_references": 1,
+      "input_media": [
+        "image"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/kling-3/standard-image-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": []
     },
     {
       "id": "kling-3-pro-text-to-video",
@@ -377,18 +1346,73 @@
       "capability": "text_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 3, "maximum": 15},
-        {"name": "aspect_ratio", "type": "string", "default": "16:9", "choices": ["16:9", "9:16", "1:1"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "multi_shots", "type": "boolean", "default": false},
-        {"name": "shots", "type": "array", "max_items": 6},
-        {"name": "cfg_scale", "type": "number", "minimum": 0, "maximum": 1}
+        {
+          "name": "sound",
+          "type": "string",
+          "default": "on",
+          "description": "Enable or disable generated sound. Supported values: `on`, `off`.",
+          "choices": [
+            "on",
+            "off"
+          ]
+        },
+        {
+          "name": "prompt",
+          "type": "string",
+          "description": "Provide a prompt describing the desired output, as shown in the examples. Kling uses up to the first `2,500` characters."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `3`–`15`.",
+          "minimum": 3,
+          "maximum": 15
+        },
+        {
+          "name": "elements",
+          "type": "array",
+          "description": "Reusable Kling element IDs. Each item must be a string."
+        },
+        {
+          "name": "cfg_scale",
+          "type": "number",
+          "default": 0.5,
+          "description": "How strongly the generation follows the prompt. Supported range: `0`–`1` in increments of `0.01`.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        {
+          "name": "multi_shots",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable a multi-shot sequence."
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "16:9",
+          "description": "Output aspect ratio. Supported values: `16:9`, `9:16`, `1:1`.",
+          "choices": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ]
+        },
+        {
+          "name": "multi_prompt",
+          "type": "array",
+          "description": "Ordered shot definitions used when `multi_shots` is `true`. Accepts up to `6` objects; for each shot, provide `prompt` (up to `512` characters) and `duration` (`1`–`15` seconds).",
+          "max_items": 6
+        }
       ],
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/kling-3/pro-text-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "input_media": [],
+      "max_references": null,
+      "notes": []
     },
     {
       "id": "kling-3-pro-image-to-video",
@@ -399,20 +1423,81 @@
       "capability": "image_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 3, "maximum": 15},
-        {"name": "image_url", "type": "string", "required": true, "media_types": ["image"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "multi_shots", "type": "boolean", "default": false},
-        {"name": "shots", "type": "array", "max_items": 6},
-        {"name": "cfg_scale", "type": "number", "minimum": 0, "maximum": 1}
+        {
+          "name": "sound",
+          "type": "string",
+          "default": "on",
+          "description": "Enable or disable generated sound. Supported values: `on`, `off`.",
+          "choices": [
+            "on",
+            "off"
+          ]
+        },
+        {
+          "name": "prompt",
+          "type": "string",
+          "description": "Provide a prompt describing the desired output, as shown in the examples. Kling uses up to the first `2,500` characters."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `3`–`15`.",
+          "minimum": 3,
+          "maximum": 15
+        },
+        {
+          "name": "elements",
+          "type": "array",
+          "description": "Reusable Kling element IDs. Each item must be a string."
+        },
+        {
+          "name": "cfg_scale",
+          "type": "number",
+          "default": 0.5,
+          "description": "How strongly the generation follows the prompt. Supported range: `0`–`1` in increments of `0.01`.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        {
+          "name": "image_url",
+          "type": "string",
+          "required": true,
+          "description": "Publicly accessible source image URL.",
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "multi_shots",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable a multi-shot sequence."
+        },
+        {
+          "name": "multi_prompt",
+          "type": "array",
+          "description": "Ordered shot definitions used when `multi_shots` is `true`. Accepts up to `6` objects; for each shot, provide `prompt` (up to `512` characters) and `duration` (`1`–`15` seconds).",
+          "max_items": 6
+        },
+        {
+          "name": "last_image_url",
+          "type": "string",
+          "description": "Optional ending-frame image URL.",
+          "media_types": [
+            "image"
+          ]
+        }
       ],
-      "input_media": ["image"],
-      "max_references": 1,
+      "input_media": [
+        "image"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/kling-3/pro-image-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": []
     },
     {
       "id": "kling-3-4k-text-to-video",
@@ -423,18 +1508,73 @@
       "capability": "text_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 3, "maximum": 15},
-        {"name": "aspect_ratio", "type": "string", "default": "16:9", "choices": ["16:9", "9:16", "1:1"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "multi_shots", "type": "boolean", "default": false},
-        {"name": "shots", "type": "array", "max_items": 6},
-        {"name": "cfg_scale", "type": "number", "minimum": 0, "maximum": 1}
+        {
+          "name": "sound",
+          "type": "string",
+          "default": "on",
+          "description": "Enable or disable generated sound. Supported values: `on`, `off`.",
+          "choices": [
+            "on",
+            "off"
+          ]
+        },
+        {
+          "name": "prompt",
+          "type": "string",
+          "description": "Provide a prompt describing the desired output, as shown in the examples. Kling uses up to the first `2,500` characters."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `3`–`15`.",
+          "minimum": 3,
+          "maximum": 15
+        },
+        {
+          "name": "elements",
+          "type": "array",
+          "description": "Reusable Kling element IDs. Each item must be a string."
+        },
+        {
+          "name": "cfg_scale",
+          "type": "number",
+          "default": 0.5,
+          "description": "How strongly the generation follows the prompt. Supported range: `0`–`1` in increments of `0.01`.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        {
+          "name": "multi_shots",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable a multi-shot sequence."
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "16:9",
+          "description": "Output aspect ratio. Supported values: `16:9`, `9:16`, `1:1`.",
+          "choices": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ]
+        },
+        {
+          "name": "multi_prompt",
+          "type": "array",
+          "description": "Ordered shot definitions used when `multi_shots` is `true`. Accepts up to `6` objects; for each shot, provide `prompt` (up to `512` characters) and `duration` (`1`–`15` seconds).",
+          "max_items": 6
+        }
       ],
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/kling-3/4k-text-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "input_media": [],
+      "max_references": null,
+      "notes": []
     },
     {
       "id": "kling-3-4k-image-to-video",
@@ -445,20 +1585,81 @@
       "capability": "image_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 3, "maximum": 15},
-        {"name": "image_url", "type": "string", "required": true, "media_types": ["image"]},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "multi_shots", "type": "boolean", "default": false},
-        {"name": "shots", "type": "array", "max_items": 6},
-        {"name": "cfg_scale", "type": "number", "minimum": 0, "maximum": 1}
+        {
+          "name": "sound",
+          "type": "string",
+          "default": "on",
+          "description": "Enable or disable generated sound. Supported values: `on`, `off`.",
+          "choices": [
+            "on",
+            "off"
+          ]
+        },
+        {
+          "name": "prompt",
+          "type": "string",
+          "description": "Provide a prompt describing the desired output, as shown in the examples. Kling uses up to the first `2,500` characters."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `3`–`15`.",
+          "minimum": 3,
+          "maximum": 15
+        },
+        {
+          "name": "elements",
+          "type": "array",
+          "description": "Reusable Kling element IDs. Each item must be a string."
+        },
+        {
+          "name": "cfg_scale",
+          "type": "number",
+          "default": 0.5,
+          "description": "How strongly the generation follows the prompt. Supported range: `0`–`1` in increments of `0.01`.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        {
+          "name": "image_url",
+          "type": "string",
+          "required": true,
+          "description": "Publicly accessible source image URL.",
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "multi_shots",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable a multi-shot sequence."
+        },
+        {
+          "name": "multi_prompt",
+          "type": "array",
+          "description": "Ordered shot definitions used when `multi_shots` is `true`. Accepts up to `6` objects; for each shot, provide `prompt` (up to `512` characters) and `duration` (`1`–`15` seconds).",
+          "max_items": 6
+        },
+        {
+          "name": "last_image_url",
+          "type": "string",
+          "description": "Optional ending-frame image URL.",
+          "media_types": [
+            "image"
+          ]
+        }
       ],
-      "input_media": ["image"],
-      "max_references": 1,
+      "input_media": [
+        "image"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/kling-3/4k-image-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": []
     },
     {
       "id": "kling-3-turbo-text-to-video",
@@ -469,15 +1670,49 @@
       "capability": "text_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 3, "maximum": 15},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["720p", "1080p"]},
-        {"name": "aspect_ratio", "type": "string", "default": "16:9", "choices": ["16:9", "9:16", "1:1"]}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Natural-language instructions describing the desired output. Kling uses up to the first `3,072` characters."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `3`–`15`.",
+          "minimum": 3,
+          "maximum": 15
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Output resolution. Supported values: `720p`, `1080p`.",
+          "choices": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "16:9",
+          "description": "Output aspect ratio. Supported values: `16:9`, `9:16`, `1:1`.",
+          "choices": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ]
+        }
       ],
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/kling-3/turbo-text-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "input_media": [],
+      "max_references": null,
+      "notes": []
     },
     {
       "id": "kling-3-turbo-image-to-video",
@@ -488,17 +1723,49 @@
       "capability": "image_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 3, "maximum": 15},
-        {"name": "image_url", "type": "string", "required": true, "media_types": ["image"]},
-        {"name": "resolution", "type": "string", "default": "720p", "choices": ["720p", "1080p"]}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Natural-language instructions describing the desired output. Kling uses up to the first `2,500` characters."
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `3`–`15`.",
+          "minimum": 3,
+          "maximum": 15
+        },
+        {
+          "name": "image_url",
+          "type": "string",
+          "required": true,
+          "description": "Publicly accessible source image URL.",
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "720p",
+          "description": "Output resolution. Supported values: `720p`, `1080p`.",
+          "choices": [
+            "720p",
+            "1080p"
+          ]
+        }
       ],
-      "input_media": ["image"],
-      "max_references": 1,
+      "input_media": [
+        "image"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/kling-3/turbo-image-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": []
     },
     {
       "id": "wan-3-text-to-video",
@@ -509,18 +1776,72 @@
       "capability": "text_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "resolution", "type": "string", "default": "1080p", "choices": ["720p", "1080p"]},
-        {"name": "aspect_ratio", "type": "string", "default": "adaptive", "choices": ["adaptive", "16:9", "4:3", "1:1", "3:4", "9:16"]},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 2, "maximum": 30},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "enable_thinking", "type": "boolean", "default": false},
-        {"name": "seed", "type": "integer", "minimum": 0}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Text instructions for the video. You can describe multiple shots and synchronized dialogue, ambience, or music."
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "1080p",
+          "description": "Supported values: `480p`, `720p`, `1080p`.",
+          "choices": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "adaptive",
+          "description": "Supported values: `adaptive`, `16:9`, `4:3`, `1:1`, `3:4`, `9:16`.",
+          "choices": [
+            "adaptive",
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `2`–`30`.",
+          "minimum": 2,
+          "maximum": 30
+        },
+        {
+          "name": "generate_audio",
+          "type": "boolean",
+          "default": true,
+          "description": "Generate synchronized dialogue, ambience, sound effects, and music."
+        },
+        {
+          "name": "enable_thinking",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable additional reasoning for complex instructions."
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "description": "Optional integer seed from `0` to `2147483647` for reproducibility.",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
       ],
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/wan-3/text-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "input_media": [],
+      "max_references": null,
+      "notes": []
     },
     {
       "id": "wan-3-image-to-video",
@@ -531,19 +1852,91 @@
       "capability": "image_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string"},
-        {"name": "image_url", "type": "string", "required": true, "media_types": ["image"]},
-        {"name": "aspect_ratio", "type": "string", "default": "adaptive", "choices": ["adaptive", "16:9", "4:3", "1:1", "3:4", "9:16"]},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 2, "maximum": 30},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "enable_thinking", "type": "boolean", "default": false}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Text instructions for motion, camera behavior, action, and audio."
+        },
+        {
+          "name": "image_url",
+          "type": "string",
+          "required": true,
+          "description": "Public URL of the first frame image.",
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "end_image_url",
+          "type": "string",
+          "description": "Optional public URL of the last frame image.",
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "1080p",
+          "description": "Supported values: `480p`, `720p`, `1080p`.",
+          "choices": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "adaptive",
+          "description": "Supported values: `adaptive`, `16:9`, `4:3`, `1:1`, `3:4`, `9:16`. `adaptive` follows the source frame.",
+          "choices": [
+            "adaptive",
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `2`–`30`.",
+          "minimum": 2,
+          "maximum": 30
+        },
+        {
+          "name": "generate_audio",
+          "type": "boolean",
+          "default": true,
+          "description": "Generate synchronized dialogue, ambience, sound effects, and music."
+        },
+        {
+          "name": "enable_thinking",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable additional reasoning for complex instructions."
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "description": "Optional integer seed from `0` to `2147483647` for reproducibility.",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
       ],
-      "input_media": ["image"],
-      "max_references": 1,
+      "input_media": [
+        "image"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/wan-3/image-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": []
     },
     {
       "id": "wan-3-reference-to-video",
@@ -554,25 +1947,123 @@
       "capability": "reference_to_video",
       "output": "video",
       "parameters": [
-        {"name": "prompt", "type": "string", "required": true},
-        {"name": "image_urls", "type": "array", "max_items": 5, "media_types": ["image"]},
-        {"name": "video_urls", "type": "array", "max_items": 5, "media_types": ["video"]},
-        {"name": "audio_urls", "type": "array", "max_items": 5, "media_types": ["audio"]},
-        {"name": "file_url", "type": "string"},
-        {"name": "link_url", "type": "string"},
-        {"name": "resolution", "type": "string", "default": "1080p", "choices": ["720p", "1080p"]},
-        {"name": "aspect_ratio", "type": "string", "default": "adaptive", "choices": ["adaptive", "16:9", "4:3", "1:1", "3:4", "9:16"]},
-        {"name": "duration", "type": "integer", "default": 5, "minimum": 2, "maximum": 30},
-        {"name": "generate_audio", "type": "boolean", "default": true},
-        {"name": "enable_thinking", "type": "boolean", "default": false},
-        {"name": "seed", "type": "integer", "minimum": 0}
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "description": "Text instructions for the output. Refer to assets by order, such as `Image 1`, `Video 1`, or `Audio 1`."
+        },
+        {
+          "name": "image_urls",
+          "type": "array",
+          "description": "Public reference image URLs. Accepts up to `10` items.",
+          "max_items": 10,
+          "media_types": [
+            "image"
+          ]
+        },
+        {
+          "name": "video_urls",
+          "type": "array",
+          "description": "Public reference video URLs. Accepts up to `5` clips with a maximum combined duration of 30 seconds.",
+          "max_items": 5,
+          "media_types": [
+            "video"
+          ]
+        },
+        {
+          "name": "audio_urls",
+          "type": "array",
+          "description": "Public WAV or MP3 reference URLs. Accepts up to `5` files with a maximum combined duration of 30 seconds.",
+          "max_items": 5,
+          "media_types": [
+            "audio"
+          ]
+        },
+        {
+          "name": "file_url",
+          "type": "string",
+          "description": "Public document URL used as context. Supported document types include PDF, DOCX, XLSX, PPTX, TXT, and Markdown. Cannot be combined with `link_url`.",
+          "media_types": [
+            "file"
+          ]
+        },
+        {
+          "name": "link_url",
+          "type": "string",
+          "description": "Public web page URL used as context. Cannot be combined with `file_url`.",
+          "media_types": [
+            "url"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "default": "1080p",
+          "description": "Supported values: `480p`, `720p`, `1080p`.",
+          "choices": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "string",
+          "default": "adaptive",
+          "description": "Supported values: `adaptive`, `16:9`, `4:3`, `1:1`, `3:4`, `9:16`.",
+          "choices": [
+            "adaptive",
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "default": 5,
+          "description": "Output duration in seconds. Supported range: `2`–`30`; input video duration plus output duration cannot exceed 30 seconds.",
+          "minimum": 2,
+          "maximum": 30
+        },
+        {
+          "name": "generate_audio",
+          "type": "boolean",
+          "default": true,
+          "description": "Generate synchronized dialogue, ambience, sound effects, and music."
+        },
+        {
+          "name": "enable_thinking",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable additional reasoning. Automatically enabled when `file_url` or `link_url` is provided."
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "description": "Optional integer seed from `0` to `2147483647` for reproducibility.",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
       ],
-      "input_media": ["image", "video", "audio", "file", "url"],
-      "max_references": 5,
+      "input_media": [
+        "audio",
+        "file",
+        "image",
+        "url",
+        "video"
+      ],
+      "max_references": null,
       "result_field": "video",
       "docs_source": "https://docs.higgsfield.ai/docs/models/wan-3/reference-to-video.md",
       "docs_checked": "2026-09-21",
-      "status": "active"
+      "status": "active",
+      "notes": [
+        "Provide at least one reference input. `file_url` and `link_url` are mutually exclusive."
+      ]
     }
   ]
 }

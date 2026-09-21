@@ -1,3 +1,5 @@
+import json
+
 from pryx_higgsfield.nodes import NODE_CLASS_MAPPINGS
 from pryx_higgsfield.nodes.catalog_node import ModelCatalogNode
 from pryx_higgsfield.nodes.generation import ReferenceToVideoNode, TextToVideoNode
@@ -33,9 +35,11 @@ def test_reference_to_video_exposes_catalog_model_choices():
 
 def test_generator_uses_connected_prompt_and_model_inputs():
     required = TextToVideoNode.INPUT_TYPES()["required"]
-    assert required["prompt"][1]["forceInput"] is True
-    assert required["model"][1]["defaultInput"] is True
-    assert "tooltip" in required["prompt"][1]
+    prompt = TextToVideoNode.INPUT_TYPES()["optional"]["prompt"]
+    assert prompt[1]["forceInput"] is True
+    assert "defaultInput" not in required["model"][1]
+    assert required["model"][1]["widgetType"] == "COMBO"
+    assert "tooltip" in prompt[1]
 
 
 def test_generator_signature_is_catalog_union_without_media_url_widgets():
@@ -46,6 +50,7 @@ def test_generator_signature_is_catalog_union_without_media_url_widgets():
     assert optional["resolution"][1]["widgetType"] == "COMBO"
     assert optional["aspect_ratio"][1]["widgetType"] == "COMBO"
     assert optional["output_format"][1]["widgetType"] == "COMBO"
+    assert isinstance(optional["output_format"][0], list)
     assert "image_url" not in optional
     assert "video_urls" not in optional
 
@@ -54,5 +59,9 @@ def test_model_catalog_selects_requested_model_and_returns_limits():
     node = ModelCatalogNode()
     model_id, info = node.select(model_id="wan-3-reference-to-video", capability="reference_to_video")
     assert model_id == "wan-3-reference-to-video"
-    assert '"max_references": 5' in info
-    assert '"supported_media": ["image", "video", "audio", "file", "url"]' in info
+    parsed = json.loads(info)
+    assert parsed["max_references"] is None
+    assert set(parsed["supported_media"]) == {"image", "video", "audio", "file", "url"}
+    params = {p["name"]: p for p in parsed["model"]["parameters"]}
+    assert params["image_urls"]["max_items"] == 10
+    assert params["video_urls"]["max_items"] == 5

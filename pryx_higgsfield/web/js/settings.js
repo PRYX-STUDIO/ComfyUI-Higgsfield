@@ -20,11 +20,14 @@ const GENERATOR_CAPABILITIES = {
     PRYXHiggsfieldVideoEdit: new Set(["video_edit"]),
     PRYXHiggsfieldVideoExtend: new Set(["video_extend"]),
 };
-const NODE_UI_SCHEMA_VERSION = 3;
+GENERATOR_CAPABILITIES.PRYXHiggsfieldAdvancedRequest = new Set(Object.values(GENERATOR_CAPABILITIES).flatMap((set) => [...set]));
+const NODE_UI_SCHEMA_VERSION = 4;
 
-const ALWAYS_VISIBLE_WIDGETS = new Set(["model", "mode", "max_usd", "auto_save", "timeout"]);
+const ALWAYS_VISIBLE_WIDGETS = new Set(["model", "mode", "max_usd", "auto_save", "timeout", "model_info", "arguments_json"]);
 const MEDIA_PARAMETER_NAMES = new Set([
     "image_url",
+    "end_image_url",
+    "last_image_url",
     "image_urls",
     "video_url",
     "video_urls",
@@ -33,7 +36,7 @@ const MEDIA_PARAMETER_NAMES = new Set([
     "file_url",
     "link_url",
 ]);
-const MEDIA_INPUT_NAMES = new Set(["references", "image", "video", "audio"]);
+const MEDIA_INPUT_NAMES = new Set(["references", "image", "end_image", "video", "audio"]);
 let catalogPromise;
 
 async function requestJson(url, options = {}) {
@@ -206,7 +209,7 @@ function openCredentialDialog(event) {
 async function refreshCatalog() {
     try {
         const result = await requestJson(REFRESH_ROUTE, { method: "POST", body: "{}" });
-        notify("Catalog refreshed: " + result.catalog_version);
+        notify("Catalog downloaded: " + result.catalog_version + ". Restart ComfyUI and reload the browser to activate it consistently in all nodes.");
     } catch (error) {
         notify(error.message, true);
     }
@@ -260,7 +263,7 @@ function modelForNode(node, models) {
         const sourceWidget = sourceNode?.widgets?.find((item) => item.name === "model_id" || item.name === "model");
         if (sourceWidget?.value) modelId = sourceWidget.value;
     }
-    return models.find((item) => item.id === modelId) || models[0] || null;
+    return models.find((item) => item.id === modelId) || null;
 }
 
 function parameterTooltip(parameter) {
@@ -296,10 +299,12 @@ function setWidgetFromParameter(node, widget, parameter) {
     const currentValue = widget.value;
     const choices = parameter.choices || [];
     if (choices.length) {
+        widget.type = "combo";
         widget.options.values = choices;
         widget.options.options = choices;
         widget.options.widgetType = "COMBO";
     } else {
+        if (widget.type === "combo") widget.type = parameter.type === "integer" || parameter.type === "number" ? "number" : "text";
         delete widget.options.values;
         delete widget.options.options;
         if (widget.options.widgetType === "COMBO") delete widget.options.widgetType;
@@ -309,8 +314,9 @@ function setWidgetFromParameter(node, widget, parameter) {
     if (parameter.maximum != null) widget.options.max = parameter.maximum;
     else delete widget.options.max;
     const tooltip = parameterTooltip(parameter);
-    widget.options.tooltip = tooltip;
-    widget.tooltip = tooltip;
+    widget.options.tooltip = tooltip + (parameter.name === "seed" ? " Use -1 for a random provider seed (field omitted)." : "");
+    widget.tooltip = widget.options.tooltip;
+    if (parameter.name === "seed") widget.options.min = -1;
 
     if (choices.length && !choices.includes(currentValue)) {
         setWidgetValue(node, widget, parameter.default ?? choices[0]);
@@ -319,7 +325,7 @@ function setWidgetFromParameter(node, widget, parameter) {
         const defaultValue = Number(parameter.default);
         const hasMinimum = parameter.minimum != null;
         const hasMaximum = parameter.maximum != null;
-        const isInRange = (value) => Number.isFinite(value) &&
+        const isInRange = (value) => (parameter.name === "seed" && value === -1) || Number.isFinite(value) &&
             (!hasMinimum || value >= parameter.minimum) &&
             (!hasMaximum || value <= parameter.maximum);
         let normalizedValue = numericValue;
@@ -336,6 +342,10 @@ function setWidgetFromParameter(node, widget, parameter) {
 }
 
 function parameterDefault(parameter) {
+    if (parameter.name === "seed" && parameter.default == null) return -1;
+    if (["array", "list", "object", "json"].includes(parameter.type)) {
+        return parameter.default == null ? "" : JSON.stringify(parameter.default);
+    }
     if (parameter.default != null) return parameter.default;
     if (parameter.choices?.length) return parameter.choices[0];
     if (parameter.type === "boolean") return false;
@@ -370,7 +380,7 @@ function resetLegacyWidgetValues(node, parameters) {
 function modelTooltip(model) {
     if (!model) return "Choose a model from the validated PRYX Higgsfield catalog.";
     const media = model.input_media?.length ? model.input_media.join(", ") : "none";
-    const limit = model.max_references == null ? "no catalog maximum" : `up to ${model.max_references}`;
+    const limit = model.max_references == null ? "see per-input limits below" : `up to ${model.max_references}`;
     return `${model.display_name} (${model.id}). Capability: ${model.capability}. Supported references: ${media}; ${limit} total reference(s).`;
 }
 
@@ -378,12 +388,64 @@ function updateMediaInputs(node, model) {
     const supported = new Set(model?.input_media || []);
     for (const input of node.inputs || []) {
         if (!MEDIA_INPUT_NAMES.has(input.name)) continue;
-        const visible = input.name === "references" ? supported.size > 0 : supported.has(input.name);
+        const visible = input.name === "references" ? supported.size > 0 : input.name === "end_image"
+            ? model?.parameters?.some((p) => ["end_image_url", "last_image_url"].includes(p.name))
+            : supported.has(input.name);
         input.hidden = !visible;
         input.tooltip = visible
             ? `${input.name} input. The selected model supports ${[...supported].join(", ") || "no media"}.`
             : `Hidden for the selected model; it does not accept ${input.name} references.`;
     }
+}
+
+function updateModelInfo(node, model) {
+    let widget = node.widgets?.find((item) => item.name === "model_info");
+    if (!widget) {
+        const element = document.createElement("div");
+        element.className = "pryx-model-info";
+        element.setAttribute("role", "note");
+        element.style.cssText = "box-sizing:border-box; padding:12px; overflow:auto; white-space:pre-wrap; " +
+            "font:12px/1.5 sans-serif; color:var(--fg-color,#ddd); background:var(--comfy-input-bg,#202020); " +
+            "border:1px solid var(--border-color,#555); border-radius:8px;";
+        widget = node.addDOMWidget("model_info", "pryx_model_info", element, {
+            serialize: false, hideOnZoom: false,
+            getValue: () => "", setValue: () => {},
+        });
+        widget.computeSize = () => [320, 240];
+        widget.options.getMinHeight = () => 240;
+        widget.options.getMaxHeight = () => 400;
+        widget.__pryxInfoElement = element;
+    }
+    const element = widget.__pryxInfoElement || widget.element;
+    if (!element) return;
+    if (!model) {
+        element.textContent = "INCOMPATIBLE MODEL\nThe connected model is not supported by this node. Select a matching capability in Model Catalog.";
+        return;
+    }
+    const lines = [model.display_name, `${model.provider} · ${model.capability.replaceAll("_", " ")}`, "", "INPUTS & LIMITS"];
+    const media = model.parameters.filter((p) => p.media_types?.length);
+    if (!media.length) lines.push("No reference media accepted.");
+    if (media.some((p) => p.media_types.some((kind) => ["image", "video", "audio"].includes(kind)))) {
+        lines.push("Connect local ComfyUI images, videos or audio directly, or via Reference Collector. The plugin uploads them automatically and supplies the public URLs required by the API. No manual hosting is needed. Connected media leaves your computer and is sent to the provider.");
+    }
+    for (const p of media) {
+        const count = p.type === "array" ? `${p.min_items ?? 0}–${p.max_items ?? "unspecified"}` : "1";
+        lines.push(`${p.name}: ${count} ${p.media_types.join("/")} · ${p.required ? "required" : "optional"}`);
+        if (p.description) lines.push(p.description.replaceAll("`", ""));
+    }
+    lines.push("", "OUTPUT");
+    for (const name of ["resolution", "aspect_ratio", "duration", "output_format", "batch_size"]) {
+        const p = model.parameters.find((p) => p.name === name);
+        if (!p) continue;
+        lines.push(`${name}: ${p.choices?.join(" / ") || `${p.minimum ?? "?"}–${p.maximum ?? "?"}`}${p.default != null ? ` · default ${p.default}` : ""}`);
+    }
+    if (model.parameters.some((p) => p.name === "resolution")) {
+        lines.push("Resolution is the API quality/size tier, not width × height. Framing uses aspect_ratio when supported; otherwise the source media/model determines it.");
+    }
+    if (model.notes?.length) lines.push("", "MODEL NOTES", ...model.notes.map((s) => s.replaceAll("`", "")));
+    if (model.id === "marketing-studio-image") lines.push("Enhanced mode: preset_id + 1 product image required; 1 optional model image. Direct mode: up to 16 images.");
+    lines.push("", "Limits checked before upload. Media content, duration and account availability are also validated by the provider.");
+    element.textContent = lines.join("\n");
 }
 
 function updateModelCatalogNode(node, models) {
@@ -405,6 +467,7 @@ function updateModelCatalogNode(node, models) {
     modelWidget.options.values = matches.map((item) => item.id);
     if (!matches.some((item) => item.id === modelWidget.value)) modelWidget.value = matches[0]?.id || "";
     const selected = matches.find((item) => item.id === modelWidget.value);
+    updateModelInfo(node, selected);
     modelWidget.options.tooltip = modelTooltip(selected);
     modelWidget.tooltip = modelTooltip(selected);
     node.properties = node.properties || {};
@@ -427,6 +490,9 @@ function attachCatalogCallbacks(node) {
         widget.callback = function (...args) {
             const result = original?.apply(this, args);
             updateCatalogWidgets(node);
+            for (const other of app.graph?._nodes || []) {
+                if (other !== node && modelCapabilitiesForNode(other)) updateCatalogWidgets(other);
+            }
             return result;
         };
     }
@@ -453,14 +519,16 @@ async function updateCatalogWidgets(node) {
         if (!modelWidget || !compatible.length) return;
         modelWidget.options = modelWidget.options || {};
         modelWidget.options.values = compatible.map((item) => item.id);
+        modelWidget.type = "combo";
         if (!compatible.some((item) => item.id === modelWidget.value)) modelWidget.value = compatible[0].id;
         const model = modelForNode(node, compatible);
+        updateModelInfo(node, model);
+        if (!model) return;
         modelWidget.options.tooltip = modelTooltip(model);
         modelWidget.tooltip = modelTooltip(model);
 
         const parameters = new Map((model?.parameters || []).map((item) => [item.name === "shots" ? "shots_json" : item.name, item]));
         const previousModelInfo = node.properties?.pryx_higgsfield_model_info;
-        const previousActiveParameters = new Set(node.properties?.pryx_higgsfield_active_parameters || []);
         const modelChanged = Boolean(previousModelInfo?.id && previousModelInfo.id !== model?.id);
         const legacyWorkflow = node.__pryxLegacyWorkflow === true ||
             node.properties?.pryx_higgsfield_ui_schema !== NODE_UI_SCHEMA_VERSION;
@@ -481,7 +549,7 @@ async function updateCatalogWidgets(node) {
             } else {
                 setWidgetVisibility(widget, Boolean(parameter));
                 if (parameter) {
-                    if (modelChanged && !previousActiveParameters.has(widget.name)) {
+                    if (modelChanged) {
                         setWidgetValue(node, widget, parameterDefault(parameter));
                     }
                     setWidgetFromParameter(node, widget, parameter);
@@ -502,7 +570,11 @@ async function updateCatalogWidgets(node) {
         node.properties.pryx_higgsfield_active_parameters = [...parameters.keys()];
         node.properties.pryx_higgsfield_ui_schema = NODE_UI_SCHEMA_VERSION;
         node.__pryxLegacyWorkflow = false;
-        node.computeSize?.();
+        if (!node.__pryxInfoSized) {
+            const size = node.computeSize?.();
+            if (size) node.setSize?.([Math.max(node.size?.[0] || 0, 360), Math.max(node.size?.[1] || 0, size[1])]);
+            node.__pryxInfoSized = true;
+        }
         node.setDirtyCanvas?.(true, true);
         attachCatalogCallbacks(node);
     } catch (error) {
@@ -514,7 +586,9 @@ async function updateSoulStyleWidget(node) {
     const widget = node.widgets?.find((item) => item.name === "style_id");
     if (!widget) return;
     try {
-        const result = await requestJson("/pryx-higgsfield/styles?variant=soul-2");
+        const id = node.widgets?.find((item) => item.name === "model")?.value;
+        if (!["soul-2", "soul-standard"].includes(id)) return;
+        const result = await requestJson("/pryx-higgsfield/styles?variant=" + (id === "soul-2" ? "soul-2" : "soul"));
         widget.options.values = (result.styles || []).map((item) => item.style_id);
     } catch (error) {
         console.debug("[PRYX Higgsfield] style widget update skipped", error);

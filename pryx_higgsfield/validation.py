@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Mapping
 from typing import Any, Iterable
 from urllib.parse import urlsplit
@@ -67,6 +68,40 @@ def validate_arguments(
         if name not in arguments or arguments[name] is None:
             continue
         _validate_value(spec, arguments[name])
+    _validate_combinations(model, arguments)
+
+
+def _validate_combinations(model: ModelSpec, arguments: Mapping[str, Any]) -> None:
+    if model.capability.value == "reference_to_video":
+        fields = [p.name for p in model.parameters if p.media_types]
+        if model.id == "seedance-2-reference-to-video":
+            fields = ["image_urls", "video_urls"]
+        if not any(arguments.get(name) for name in fields):
+            raise ValidationError("Provide at least one supported reference input (" + ", ".join(fields) + ").")
+    if arguments.get("file_url") and arguments.get("link_url"):
+        raise ValidationError("file_url and link_url are mutually exclusive.")
+    if model.id == "marketing-studio-image" and arguments.get("enhance_prompt"):
+        if not arguments.get("preset_id") or not 1 <= len(arguments.get("image_urls", [])) <= 2:
+            raise ValidationError("Enhanced Marketing Studio requires preset_id and 1–2 images (product, optional model).")
+    if model.id.startswith("kling-"):
+        if arguments.get("multi_shots") and not arguments.get("multi_prompt"):
+            raise ValidationError("multi_shots requires multi_prompt shot definitions.")
+        for shot in arguments.get("multi_prompt", []):
+            if not isinstance(shot, Mapping) or not isinstance(shot.get("prompt"), str) or not 1 <= len(shot["prompt"]) <= 512:
+                raise ValidationError("Each multi_prompt shot requires a prompt of 1–512 characters.")
+            duration = shot.get("duration")
+            if type(duration) is not int or not 1 <= duration <= 15:
+                raise ValidationError("Each multi_prompt shot requires an integer duration of 1–15 seconds.")
+        if any(not isinstance(item, str) for item in arguments.get("elements", [])):
+            raise ValidationError("elements must contain Kling element ID strings.")
+    if model.id == "recraft-v4-1-pro":
+        colors = list(arguments.get("colors", []))
+        if "background_color" in arguments:
+            colors.append(arguments["background_color"])
+        for color in colors:
+            rgb = color.get("rgb") if isinstance(color, Mapping) else None
+            if not isinstance(rgb, list) or len(rgb) != 3 or any(type(v) is not int or not 0 <= v <= 255 for v in rgb):
+                raise ValidationError("Each color must contain rgb: three integers from 0 to 255.")
 
 
 def _validate_value(spec: ParameterSpec, value: Any) -> None:
@@ -110,6 +145,8 @@ def _validate_value(spec: ParameterSpec, value: Any) -> None:
 
 
 def _validate_number_limits(spec: ParameterSpec, value: int | float) -> None:
+    if not math.isfinite(value):
+        raise ValidationError(f"{spec.name} must be finite.")
     if spec.minimum is not None and value < spec.minimum:
         raise ValidationError(f"{spec.name} must be at least {spec.minimum}.")
     if spec.maximum is not None and value > spec.maximum:
@@ -151,41 +188,39 @@ def references_to_arguments(
         _validate_public_url(url, "reference URL")
         by_kind[kind].append(str(url))
 
-    result: dict[str, Any] = {}
-    params = model.parameter_map
-    if "image_url" in params and by_kind["image"]:
-        result["image_url"] = by_kind["image"][0]
-        image_values = by_kind["image"][1:]
-    else:
-        image_values = by_kind["image"]
-    if "video_url" in params and by_kind["video"]:
-        result["video_url"] = by_kind["video"][0]
-        video_values = by_kind["video"][1:]
-    else:
-        video_values = by_kind["video"]
-    if "audio_url" in params and by_kind["audio"]:
-        result["audio_url"] = by_kind["audio"][0]
-        audio_values = by_kind["audio"][1:]
-    else:
-        audio_values = by_kind["audio"]
-    for kind in ("image", "video", "audio"):
-        field = f"{kind}_urls"
-        values = {
-            "image": image_values,
-            "video": video_values,
-            "audio": audio_values,
-        }[kind]
-        if field in params and values:
-            result[field] = values
-    if "file_url" in params and by_kind["file"]:
-        result["file_url"] = by_kind["file"][0]
-    if "link_url" in params and by_kind["url"]:
-        result["link_url"] = by_kind["url"][0]
-
     allowed_kinds = set(model.input_media)
     unsupported = [item.get("kind") for item in items if item.get("kind") not in allowed_kinds]
     if unsupported:
         raise ValidationError(
             f"{model.display_name} does not support reference type(s): {', '.join(map(str, sorted(set(unsupported))))}"
         )
+    result: dict[str, Any] = {}
+    params = model.parameter_map
+    # Explicit frame/source sockets take priority over the ordered collector.
+    remaining = []
+    for item in items:
+        field = item.get("field")
+        if not field:
+            remaining.append(item)
+            continue
+        spec = params.get(field)
+        if not spec or item["kind"] not in spec.media_types or spec.type == "array" or field in result:
+            raise ValidationError(f"Unsupported or duplicate reference input: {field}")
+        result[field] = item["url"]
+    singular_fields = {
+        "image": ("image_url", "end_image_url", "last_image_url"),
+        "video": ("video_url",), "audio": ("audio_url",),
+        "file": ("file_url",), "url": ("link_url",),
+    }
+    for item in remaining:
+        kind, url = item["kind"], item["url"]
+        field = next((name for name in singular_fields[kind] if name in params and name not in result), None)
+        if field:
+            result[field] = url
+        elif f"{kind}_urls" in params:
+            result.setdefault(f"{kind}_urls", []).append(url)
+        else:
+            raise ValidationError(f"Too many {kind} references for {model.display_name}; no input may be silently discarded.")
+    for name, value in result.items():
+        _validate_value(params[name], value)
     return result

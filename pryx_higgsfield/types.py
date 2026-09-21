@@ -144,6 +144,7 @@ class ModelSpec:
     docs_source: str = ""
     docs_checked: str = ""
     status: ModelStatus = ModelStatus.ACTIVE
+    notes: tuple[str, ...] = ()
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "ModelSpec":
@@ -165,6 +166,7 @@ class ModelSpec:
             docs_source=str(data.get("docs_source", "")),
             docs_checked=str(data.get("docs_checked", "")),
             status=ModelStatus(str(data.get("status", ModelStatus.ACTIVE.value))),
+            notes=tuple(data.get("notes", ())),
         )
 
     @property
@@ -195,6 +197,7 @@ class ModelSpec:
             "docs_source": self.docs_source,
             "docs_checked": self.docs_checked,
             "status": self.status.value,
+            "notes": list(self.notes),
         }
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from ..catalog import load_bundled_catalog
+from ..catalog import runtime_catalog
 
 
 class ModelCatalogNode:
@@ -15,7 +15,7 @@ class ModelCatalogNode:
 
     @classmethod
     def INPUT_TYPES(cls):
-        catalog = load_bundled_catalog()
+        catalog = runtime_catalog()
         providers = sorted({model.provider for model in catalog.models})
         capabilities = sorted({model.capability.value for model in catalog.models})
         model_ids = [model.id for model in catalog.models]
@@ -38,7 +38,7 @@ class ModelCatalogNode:
         }
 
     def select(self, model_id="", provider="all", capability="all", status="active"):
-        catalog = load_bundled_catalog()
+        catalog = runtime_catalog()
         models = catalog.filter(provider=provider, capability=capability, status=status)
         if not models:
             return ("", json.dumps({"models": []}, ensure_ascii=False))

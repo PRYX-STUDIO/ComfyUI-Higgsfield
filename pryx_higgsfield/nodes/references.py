@@ -15,6 +15,7 @@ class Reference:
     value: Any = None
     url: str | None = None
     label: str = ""
+    field: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         result = {"kind": self.kind}
@@ -22,6 +23,8 @@ class Reference:
             result["url"] = self.url
         if self.label:
             result["label"] = self.label
+        if self.field:
+            result["field"] = self.field
         return result
 
 
@@ -46,6 +49,7 @@ def _coerce_reference(value: Reference | Mapping[str, Any]) -> Reference:
             value=value.get("value"),
             url=value.get("url"),
             label=str(value.get("label", "")),
+            field=str(value.get("field", "")),
         )
     raise ValidationError("Invalid PRYX Higgsfield reference collection.")
 

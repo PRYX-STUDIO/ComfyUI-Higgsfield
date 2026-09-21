@@ -74,11 +74,6 @@ def parse_page(url: str, content: str) -> dict[str, Any] | None:
         for parameter in parameters
         for media in parameter.get("media_types", [])
     })
-    array_limits = [
-        parameter.get("max_items")
-        for parameter in parameters
-        if parameter.get("type") == "array" and parameter.get("max_items") is not None
-    ]
     return {
         "id": slug,
         "display_name": display_name,
@@ -89,7 +84,10 @@ def parse_page(url: str, content: str) -> dict[str, Any] | None:
         "output": output,
         "parameters": parameters,
         "input_media": input_media,
-        "max_references": max(array_limits) if array_limits else None,
+        # Per-field maxima are not a shared total limit.
+        "max_references": None,
+        "notes": [" ".join(re.sub(r"<[^>]+>", " ", note).split())
+                  for note in re.findall(r"<Note>(.*?)</Note>", content, re.DOTALL)],
         "result_field": "images" if output == "image" else "video",
         "docs_source": url,
         "docs_checked": dt.date.today().isoformat(),
@@ -110,6 +108,12 @@ def _parse_parameter(match: re.Match[str]) -> dict[str, Any]:
     text = " ".join(text.split())
     if text:
         parameter["description"] = text
+    choices = re.search(r"Supported values:\s*([^\n]+?)(?:\. |\.$|$)", text)
+    if choices:
+        parameter["choices"] = [_parse_scalar(value, parameter["type"])
+                                for value in re.findall(r"`([^`]+)`", choices.group(1))]
+    if name == "resolution" and "Recraft V4.1 Pro uses `2k`" in text:
+        parameter["choices"] = ["2k"]
     ranges = re.search(r"Supported range:\s*" + _TICK + r"?(-?\d+(?:\.\d+)?)" + _TICK + r"?\s*[–-]\s*" + _TICK + r"?(-?\d+(?:\.\d+)?)" + _TICK + r"?", text)
     if ranges:
         lower, upper = ranges.groups()
@@ -117,8 +121,13 @@ def _parse_parameter(match: re.Match[str]) -> dict[str, Any]:
         if key:
             parameter["minimum"] = _parse_scalar(lower, parameter["type"])
             parameter["maximum"] = _parse_scalar(upper, parameter["type"])
+    elif parameter["type"] in {"integer", "number"}:
+        bounds = re.search(r"from `(-?\d+)` to `(-?\d+)`", text)
+        if bounds:
+            parameter["minimum"] = _parse_scalar(bounds.group(1), parameter["type"])
+            parameter["maximum"] = _parse_scalar(bounds.group(2), parameter["type"])
     if parameter["type"] == "array":
-        count = re.search(r"Accepts\s+(?:up to\s+)?" + _TICK + r"?(d+)" + _TICK + r"?(?:\s*[–-]\s*" + _TICK + r"?(d+)" + _TICK + r"?)?", text)
+        count = re.search(r"accepts\s+(?:up to\s+)?`?(\d+)`?(?:\s*[–-]\s*`?(\d+)`?)?", text, re.IGNORECASE)
         if count:
             if count.group(2):
                 parameter["min_items"] = int(count.group(1))
@@ -229,8 +238,22 @@ def main() -> int:
     parser.add_argument("--index-url", default=INDEX_URL)
     parser.add_argument("--output", type=Path, default=PROJECT_ROOT / "pryx_higgsfield/catalog/models.json")
     parser.add_argument("--check", action="store_true", help="Fetch and validate without writing.")
+    parser.add_argument("--existing", action="store_true", help="Audit existing model pages, preserving workflow IDs and order.")
     args = parser.parse_args()
-    payload = build_catalog(args.index_url)
+    if args.existing:
+        payload = json.loads(args.output.read_text(encoding="utf-8"))
+        pages = fetch_many([model["docs_source"] for model in payload["models"]])
+        for model in payload["models"]:
+            parsed = parse_page(model["docs_source"], pages[model["docs_source"]])
+            if not parsed or parsed["endpoint"] != model["endpoint"]:
+                raise RuntimeError(f"Endpoint changed or missing: {model['id']}")
+            for key in ("parameters", "input_media", "max_references", "notes", "docs_checked"):
+                model[key] = parsed[key]
+        payload["catalog_version"] = dt.date.today().isoformat() + ".2"
+        payload["source_date"] = dt.date.today().isoformat()
+        validate_catalog_payload(payload)
+    else:
+        payload = build_catalog(args.index_url)
     if not args.check:
         args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Validated {len(payload['models'])} catalog model(s).")

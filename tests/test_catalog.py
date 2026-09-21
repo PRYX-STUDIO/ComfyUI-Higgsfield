@@ -11,7 +11,7 @@ def test_bundled_catalog_has_documented_model_families():
     assert len(catalog.models) >= 25
     assert catalog.get("soul-2").endpoint == "higgsfield-ai/soul/v2/standard"
     assert catalog.get("seedance-2-5-video-edit").capability.value == "video_edit"
-    assert catalog.get("wan-3-reference-to-video").input_media == ("image", "video", "audio", "file", "url")
+    assert set(catalog.get("wan-3-reference-to-video").input_media) == {"image", "video", "audio", "file", "url"}
 
 
 def test_catalog_rejects_duplicate_ids():
