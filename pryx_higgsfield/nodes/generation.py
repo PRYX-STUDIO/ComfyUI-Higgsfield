@@ -171,7 +171,7 @@ class TextToVideoNode:
     def INPUT_TYPES(cls):
         optional = _optional_widgets()
         optional.update(_common_generation_inputs())
-        return {"required": {"model": _model_inputs(Capability.TEXT_TO_VIDEO)[0], "prompt": ("STRING", {"multiline": True})}, "optional": optional}
+        return {"required": {"model": _model_inputs(Capability.TEXT_TO_VIDEO), "prompt": ("STRING", {"multiline": True})}, "optional": optional}
 
     def generate(self, model, prompt, **kwargs):
         values = dict(kwargs)
@@ -199,7 +199,7 @@ class ImageToVideoNode:
         optional = _optional_widgets()
         optional.update(_common_generation_inputs())
         optional.update({"image": ("IMAGE",), "references": (ReferenceCollection.TYPE,)})
-        return {"required": {"model": _model_inputs(Capability.IMAGE_TO_VIDEO)[0], "prompt": ("STRING", {"default": "", "multiline": True})}, "optional": optional}
+        return {"required": {"model": _model_inputs(Capability.IMAGE_TO_VIDEO), "prompt": ("STRING", {"default": "", "multiline": True})}, "optional": optional}
 
     def generate(self, model, prompt="", **kwargs):
         values = dict(kwargs)
@@ -234,7 +234,7 @@ class ReferenceToVideoNode:
             "video": ("VIDEO",),
             "audio": ("AUDIO",),
         })
-        return {"required": {"model": _model_inputs(Capability.REFERENCE_TO_VIDEO)[0], "prompt": ("STRING", {"default": "", "multiline": True})}, "optional": optional}
+        return {"required": {"model": _model_inputs(Capability.REFERENCE_TO_VIDEO), "prompt": ("STRING", {"default": "", "multiline": True})}, "optional": optional}
 
     def generate(self, model, prompt="", **kwargs):
         values = dict(kwargs)
@@ -269,7 +269,7 @@ class VideoEditNode:
         optional = _optional_widgets()
         optional.update(_common_generation_inputs())
         optional.update({"video": ("VIDEO",), "references": (ReferenceCollection.TYPE,)})
-        return {"required": {"model": _model_inputs(Capability.VIDEO_EDIT)[0], "prompt": ("STRING", {"multiline": True})}, "optional": optional}
+        return {"required": {"model": _model_inputs(Capability.VIDEO_EDIT), "prompt": ("STRING", {"multiline": True})}, "optional": optional}
 
     def generate(self, model, prompt, **kwargs):
         values = dict(kwargs)
@@ -299,7 +299,7 @@ class VideoExtendNode:
         optional = _optional_widgets()
         optional.update(_common_generation_inputs())
         optional.update({"video": ("VIDEO",), "references": (ReferenceCollection.TYPE,)})
-        return {"required": {"model": _model_inputs(Capability.VIDEO_EXTEND)[0], "prompt": ("STRING", {"multiline": True})}, "optional": optional}
+        return {"required": {"model": _model_inputs(Capability.VIDEO_EXTEND), "prompt": ("STRING", {"multiline": True})}, "optional": optional}
 
     def generate(self, model, prompt, **kwargs):
         values = dict(kwargs)
