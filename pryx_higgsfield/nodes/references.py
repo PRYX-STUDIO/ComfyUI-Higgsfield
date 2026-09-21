@@ -85,7 +85,7 @@ class ReferenceCollectorNode:
                 "audio": ("AUDIO",),
                 "external_url": ("STRING", {"default": "", "multiline": False}),
                 "external_type": (["url", "file"], {"default": "url"}),
-                "label": ("STRING", {"default": "", "multiline": False}),
+                "label": ("STRING", {"default": "", "multiline": False, "tooltip": "Name for newly added media, e.g. person. Use {{ref:person}} in supported models. Use one item per collector for unique names; batches share this label. Check Reference Preview before generating."}),
             }
         }
 
@@ -99,6 +99,9 @@ class ReferenceCollectorNode:
         external_type: str = "url",
         label: str = "",
     ):
+        label = label.strip()
+        if any(char in label for char in "{}"):
+            raise ValidationError("Reference labels must not contain braces.")
         result = ReferenceCollection(references or ())
         if image is not None:
             result.extend(Reference("image", value=item, label=label) for item in _split_batch(image))

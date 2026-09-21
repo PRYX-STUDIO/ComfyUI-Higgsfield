@@ -12,6 +12,7 @@ from ..client import HiggsfieldClient
 from ..errors import APIError, HiggsfieldError, MediaError, ValidationError
 from ..media import MediaArtifact, MediaStore, empty_image, extract_media_urls, upload_reference
 from ..polling import PollingConfig, PollingInterrupted, RequestPoller
+from ..reference_prompt import reference_prompt
 from ..server import emit_progress
 from ..types import AcceptedRequest, Estimate, ModelSpec, Phase, ProgressEvent, RequestStatus, StatusSnapshot
 from ..validation import normalize_arguments, references_to_arguments
@@ -27,6 +28,7 @@ class GenerationOutcome:
     urls: list[str] = field(default_factory=list)
     artifacts: list[MediaArtifact] = field(default_factory=list)
     elapsed_seconds: float = 0.0
+    reference_manifest: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def request_id(self) -> str:
@@ -46,6 +48,7 @@ class GenerationOutcome:
             "cancel_url": self.accepted.cancel_url if self.accepted else None,
             "elapsed_seconds": round(self.elapsed_seconds, 3),
             "remote_urls": self.urls,
+            "reference_manifest": self.reference_manifest,
         }
         if self.snapshot:
             payload["provider_status"] = dict(self.snapshot.payload)
@@ -78,6 +81,12 @@ def execute_generation(
     if model.status.value == "unavailable":
         raise ValidationError(f"Model {model.display_name} is unavailable in the catalog.")
     ref_values = ReferenceCollection(references or ())
+    arguments = dict(arguments)
+    reference_manifest = []
+    if ref_values or "{{ref:" in str(arguments.get("prompt", "")):
+        resolved, reference_manifest, _ = reference_prompt(model, ref_values, arguments.get("prompt", ""))
+        if "prompt" in arguments:
+            arguments["prompt"] = resolved
     # Validate counts, required media, and parameter combinations BEFORE uploading.
     preview = references_to_arguments(model, [
         {"kind": ref.kind, "url": ref.url or f"https://local-reference.invalid/{index}", "field": ref.field}
@@ -114,6 +123,7 @@ def execute_generation(
                 model=model,
                 estimate=estimate,
                 elapsed_seconds=time.monotonic() - start,
+                reference_manifest=reference_manifest,
             )
             _progress(node_id, Phase.COMPLETED, None, start, estimate=estimate, message="Estimate completed.")
             return outcome
@@ -193,6 +203,7 @@ def execute_generation(
             snapshot=snapshot,
             urls=urls,
             artifacts=artifacts,
+            reference_manifest=reference_manifest,
             elapsed_seconds=time.monotonic() - start,
         )
         _progress(

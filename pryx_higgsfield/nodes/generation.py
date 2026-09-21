@@ -8,6 +8,7 @@ from typing import Any
 
 from ..catalog import runtime_catalog
 from ..errors import ValidationError
+from ..reference_prompt import reference_prompt
 from ..types import Capability, ParameterSpec
 from .common import execute_generation, image_output, video_output
 from .references import Reference, ReferenceCollection, _split_batch
@@ -299,17 +300,17 @@ def _with_reference_inputs(
         frames = _split_batch(image)
         if "image_url" in params and len(frames) != 1:
             raise ValidationError("The start image socket accepts exactly one image; use references for ordered batches.")
-        result.extend(Reference("image", item, field="image_url" if "image_url" in params else "") for item in frames)
+        result.extend(Reference("image", item, label=f"Direct image {index}", field="image_url" if "image_url" in params else "") for index, item in enumerate(frames, 1))
     if end_image is not None:
         field = next((name for name in ("end_image_url", "last_image_url") if name in params), None)
         frames = _split_batch(end_image)
         if not field or len(frames) != 1:
             raise ValidationError("The selected model must support an end frame, supplied as exactly one image.")
-        result.append(Reference("image", frames[0], field=field))
+        result.append(Reference("image", frames[0], label="Direct end image", field=field))
     if video is not None:
-        result.append(Reference("video", video, field="video_url" if "video_url" in params else ""))
+        result.append(Reference("video", video, label="Direct video", field="video_url" if "video_url" in params else ""))
     if audio is not None:
-        result.append(Reference("audio", audio))
+        result.append(Reference("audio", audio, label="Direct audio"))
     result.extend(ReferenceCollection(references or ()))
     return result
 
@@ -458,6 +459,29 @@ class ImageToVideoNode(CatalogGeneratorNode):
             references=references,
         )
         return _video_result(outcome)
+
+
+class ReferencePreviewNode:
+    CATEGORY = "PRYX/Higgsfield"
+    FUNCTION = "preview"
+    RETURN_TYPES = ("STRING", ReferenceCollection.TYPE, "STRING", "STRING")
+    RETURN_NAMES = ("prompt", "references", "model", "reference_info")
+    OUTPUT_NODE = True
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"model": (_models(Capability.REFERENCE_TO_VIDEO),)},
+                "optional": {
+                    "prompt": ("STRING", {"forceInput": True, "tooltip": "Use {{ref:label}} for named references where supported. This preview never uploads or generates."}),
+                    "references": (ReferenceCollection.TYPE,),
+                    "image": ("IMAGE",), "video": ("VIDEO",), "audio": ("AUDIO",),
+                }}
+
+    def preview(self, model, prompt="", references=None, image=None, video=None, audio=None):
+        refs = _with_reference_inputs(references, image=image, video=video, audio=audio, model_id=model)
+        _, _, info = reference_prompt(_CATALOG.get(model), refs, prompt)
+        # Preserve aliases so the receiving generator validates the final mapping again.
+        return {"ui": {"text": [info]}, "result": (prompt, refs, model, info)}
 
 
 class ReferenceToVideoNode(CatalogGeneratorNode):

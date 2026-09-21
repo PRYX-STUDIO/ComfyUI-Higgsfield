@@ -6,6 +6,7 @@ from .generation import (
     ImageGenerateEditNode,
     ImageToVideoNode,
     ReferenceToVideoNode,
+    ReferencePreviewNode,
     TextToVideoNode,
     VideoEditNode,
     VideoExtendNode,
@@ -16,6 +17,7 @@ from .references import ReferenceCollectorNode
 NODE_CLASS_MAPPINGS = {
     "PRYXHiggsfieldModelCatalog": ModelCatalogNode,
     "PRYXHiggsfieldReferenceCollector": ReferenceCollectorNode,
+    "PRYXHiggsfieldReferencePreview": ReferencePreviewNode,
     "PRYXHiggsfieldImageGenerateEdit": ImageGenerateEditNode,
     "PRYXHiggsfieldTextToVideo": TextToVideoNode,
     "PRYXHiggsfieldImageToVideo": ImageToVideoNode,
@@ -28,6 +30,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "PRYXHiggsfieldModelCatalog": "PRYX Higgsfield Model Catalog",
     "PRYXHiggsfieldReferenceCollector": "PRYX Higgsfield Reference Collector",
+    "PRYXHiggsfieldReferencePreview": "PRYX Higgsfield Reference Preview",
     "PRYXHiggsfieldImageGenerateEdit": "PRYX Higgsfield Image Generate & Edit",
     "PRYXHiggsfieldTextToVideo": "PRYX Higgsfield Text to Video",
     "PRYXHiggsfieldImageToVideo": "PRYX Higgsfield Image to Video",

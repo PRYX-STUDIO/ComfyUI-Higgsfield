@@ -492,6 +492,20 @@ function updateModelInfo(node, model) {
         lines.push("Resolution is the API quality/size tier, not width × height. Framing uses aspect_ratio when supported; otherwise the source media/model determines it.");
     }
     if (model.notes?.length) lines.push("", "MODEL NOTES", ...model.notes.map(readableModelNote));
+    if (model.capability === "reference_to_video") {
+        lines.push("", "PROMPT REFERENCES",
+            "Use Reference Preview to inspect the actual media order without uploading or generating.",
+            "Direct media inputs come first, followed by the collector chain. Images, videos and audio are numbered separately. Batches keep their order.",
+            "Give each item a unique Collector label. Example: person. One item per Collector avoids ambiguous labels.");
+        if (model.id === "wan-3-reference-to-video") {
+            lines.push("Confirmed syntax: Image 1, Image 2, Video 1, Audio 1 (no @ or angle brackets).",
+                "Named prompt example: Use {{ref:person}} for the character and {{ref:camera}} for camera movement.",
+                "The plugin replaces names with the correct model tokens before upload. Unknown or duplicate names and missing numbered references stop the request.");
+        } else {
+            lines.push("This endpoint does not document an exact prompt reference syntax. @ mentions and angle-bracket tokens are not verified. Named {{ref:label}} aliases are blocked; plain prompts remain available. Preview numbering describes delivery order, not confirmed prompt syntax.");
+        }
+        lines.push("Connect Preview's prompt, references and model outputs to the generator. Do not connect the same media again at the generator.");
+    }
     if (model.id === "marketing-studio-image") lines.push("Enhanced mode: preset_id + 1 product image required; 1 optional model image. Direct mode: up to 16 images.");
     lines.push("", "Limits checked before upload. Media content, duration and account availability are also validated by the provider.");
     if (media.length) lines.push("", "Technical note: connected media is uploaded to the provider automatically. No manual hosting is needed. Document/web links remain external links.");
@@ -645,6 +659,24 @@ async function updateSoulStyleWidget(node) {
     }
 }
 
+function attachReferencePreview(node) {
+    if (!nodeTypeName(node).replace(/\s+/g, "").includes("PRYXHiggsfieldReferencePreview") || node.__pryxPreviewAttached) return;
+    node.__pryxPreviewAttached = true;
+    const element = document.createElement("div");
+    element.style.cssText = "white-space:pre-wrap;padding:10px;overflow:auto;font:12px/1.5 sans-serif;";
+    element.textContent = "Run this node to inspect reference order and prompt expansion. No upload or API call. Connect prompt, references and model outputs to the generator; do not add the same media twice. Disconnect downstream generators for a preview-only run.";
+    const widget = node.addDOMWidget("reference_preview", "pryx_reference_preview", element, { serialize: false });
+    widget.computeSize = () => [340, 240];
+    widget.options.getMinHeight = () => 240;
+    const original = node.onExecuted;
+    node.onExecuted = function (message) {
+        const result = original?.apply(this, arguments);
+        element.textContent = "LAST EXECUTION — rerun after changing inputs, labels or model\n\n" + (message?.text || []).join("\n");
+        node.setDirtyCanvas?.(true, true);
+        return result;
+    };
+}
+
 app.registerExtension({
     name: "PRYX.Higgsfield",
     settings: [
@@ -670,12 +702,14 @@ app.registerExtension({
         requestJson(CATALOG_ROUTE).catch(() => {});
     },
     nodeCreated(node) {
+        attachReferencePreview(node);
         if (modelCapabilitiesForNode(node) || nodeTypeName(node).replace(/\s+/g, "").includes("PRYXHiggsfieldModelCatalog")) {
             updateCatalogWidgets(node);
             updateSoulStyleWidget(node);
         }
     },
     loadedGraphNode(node) {
+        attachReferencePreview(node);
         if (!modelCapabilitiesForNode(node) && !nodeTypeName(node).replace(/\s+/g, "").includes("PRYXHiggsfieldModelCatalog")) return;
         node.__pryxLoadedGraphNode = true;
         node.__pryxLegacyWorkflow = node.properties?.pryx_higgsfield_ui_schema !== NODE_UI_SCHEMA_VERSION;
