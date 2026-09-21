@@ -1,3 +1,6 @@
+import { app } from "../../../scripts/app.js";
+import { api } from "../../../scripts/api.js";
+
 /* PRYX Higgsfield ComfyUI extension.
  *
  * Secrets are sent only to the local ComfyUI settings routes. They are never
@@ -23,11 +26,49 @@ async function requestJson(url, options = {}) {
 }
 
 function notify(message, error = false) {
-    if (globalThis.app?.ui?.dialog) {
-        globalThis.app.ui.dialog.show(message);
+    if (app?.ui?.dialog) {
+        app.ui.dialog.show(message);
     } else {
         console[error ? "error" : "info"]("[PRYX Higgsfield] " + message);
     }
+}
+
+function createSettingsButton(text, onClick) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = text;
+    button.style.cssText =
+        "padding: 6px 12px; border: 1px solid var(--border-color, #666); " +
+        "border-radius: 6px; cursor: pointer;";
+    button.addEventListener("click", onClick);
+    return button;
+}
+
+function createCredentialSetting() {
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = "display: flex; align-items: center; gap: 10px;";
+
+    const button = createSettingsButton("Manage credentials", openCredentialDialog);
+    const status = document.createElement("span");
+    status.textContent = "Checking...";
+    status.style.opacity = "0.75";
+    wrapper.append(button, status);
+
+    requestJson(SETTINGS_ROUTE)
+        .then((result) => {
+            status.textContent = result.configured
+                ? "Configured (" + (result.key_id || "key") + ")"
+                : "Not configured";
+        })
+        .catch(() => {
+            status.textContent = "Unavailable";
+        });
+
+    return wrapper;
+}
+
+function createCatalogRefreshSetting() {
+    return createSettingsButton("Refresh catalog", refreshCatalog);
 }
 
 function openCredentialDialog() {
@@ -88,8 +129,8 @@ async function refreshCatalog() {
 
 function handleProgress(event) {
     const data = event.detail || event;
-    if (!data || !globalThis.app?.graph) return;
-    const node = data.node_id ? globalThis.app.graph.getNodeById?.(Number(data.node_id)) : null;
+    if (!data || !app?.graph) return;
+    const node = data.node_id ? app.graph.getNodeById?.(Number(data.node_id)) : null;
     if (!node) return;
     node.properties = node.properties || {};
     node.properties.pryx_higgsfield_status = {
@@ -139,22 +180,22 @@ app.registerExtension({
     name: "PRYX.Higgsfield",
     settings: [
         {
-            id: "pryx_higgsfield.credentials",
-            name: "PRYX Higgsfield: Credentials",
-            type: "button",
-            text: "Manage",
-            action: openCredentialDialog,
+            id: "PRYX.Higgsfield.Credentials",
+            name: "Higgsfield API credentials",
+            category: ["PRYX Higgsfield", "Credentials"],
+            type: createCredentialSetting,
+            defaultValue: false,
         },
         {
-            id: "pryx_higgsfield.catalog_refresh",
-            name: "PRYX Higgsfield: Refresh catalog",
-            type: "button",
-            text: "Refresh",
-            action: refreshCatalog,
+            id: "PRYX.Higgsfield.CatalogRefresh",
+            name: "Model catalog",
+            category: ["PRYX Higgsfield", "Catalog"],
+            type: createCatalogRefreshSetting,
+            defaultValue: false,
         },
     ],
     setup() {
-        globalThis.api?.addEventListener?.("pryx_higgsfield.progress", handleProgress);
+        api?.addEventListener?.("pryx_higgsfield.progress", handleProgress);
         // Trigger one read so settings/catalog errors are visible in the
         // browser console without placing credentials in the page.
         requestJson(CATALOG_ROUTE).catch(() => {});
