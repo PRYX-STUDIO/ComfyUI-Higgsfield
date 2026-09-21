@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PRYX Higgsfield model catalog",
+  "type": "object",
+  "required": ["schema_version", "catalog_version", "source_date", "models"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "catalog_version": { "type": "string", "minLength": 1 },
+    "source_date": { "type": "string", "format": "date" },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id", "display_name", "provider", "family", "endpoint",
+          "capability", "output", "parameters", "docs_source",
+          "docs_checked", "status"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$" },
+          "display_name": { "type": "string" },
+          "provider": { "type": "string" },
+          "family": { "type": "string" },
+          "endpoint": { "type": "string", "pattern": "^[A-Za-z0-9._~/-]+$" },
+          "capability": {
+            "enum": [
+              "image_generate", "image_edit", "text_to_video",
+              "image_to_video", "reference_to_video", "video_edit",
+              "video_extend"
+            ]
+          },
+          "output": { "enum": ["image", "video"] },
+          "parameters": { "type": "array" },
+          "input_media": { "type": "array", "items": { "type": "string" } },
+          "max_references": { "type": ["integer", "null"], "minimum": 1 },
+          "result_field": { "type": "string" },
+          "docs_source": { "type": "string", "format": "uri" },
+          "docs_checked": { "type": "string", "format": "date" },
+          "status": { "enum": ["active", "deprecated", "unavailable"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

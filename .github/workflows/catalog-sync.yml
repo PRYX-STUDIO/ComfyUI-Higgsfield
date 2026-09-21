@@ -1,0 +1,30 @@
+name: Catalog drift check
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Generate catalog
+        run: python tools/sync_catalog.py
+      - name: Open catalog update pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automation/catalog-drift
+          delete-branch: true
+          title: "chore: update Higgsfield catalog"
+          commit-message: "chore: update Higgsfield catalog"
+          body: "Generated from the official Higgsfield documentation. Review endpoint and limit changes before merging."
