@@ -1,5 +1,6 @@
 from pryx_higgsfield.nodes import NODE_CLASS_MAPPINGS
-from pryx_higgsfield.nodes.generation import ReferenceToVideoNode
+from pryx_higgsfield.nodes.catalog_node import ModelCatalogNode
+from pryx_higgsfield.nodes.generation import ReferenceToVideoNode, TextToVideoNode
 from pryx_higgsfield.nodes.references import Reference, ReferenceCollectorNode, ReferenceCollection
 
 
@@ -28,3 +29,30 @@ def test_reference_to_video_exposes_catalog_model_choices():
         "seedance-2-5-reference-to-video",
         "wan-3-reference-to-video",
     ]
+
+
+def test_generator_uses_connected_prompt_and_model_inputs():
+    required = TextToVideoNode.INPUT_TYPES()["required"]
+    assert required["prompt"][1]["forceInput"] is True
+    assert required["model"][1]["defaultInput"] is True
+    assert "tooltip" in required["prompt"][1]
+
+
+def test_generator_signature_is_catalog_union_without_media_url_widgets():
+    optional = TextToVideoNode.INPUT_TYPES()["optional"]
+    assert "resolution" in optional
+    assert "aspect_ratio" in optional
+    assert "output_format" in optional
+    assert optional["resolution"][1]["widgetType"] == "COMBO"
+    assert optional["aspect_ratio"][1]["widgetType"] == "COMBO"
+    assert optional["output_format"][1]["widgetType"] == "COMBO"
+    assert "image_url" not in optional
+    assert "video_urls" not in optional
+
+
+def test_model_catalog_selects_requested_model_and_returns_limits():
+    node = ModelCatalogNode()
+    model_id, info = node.select(model_id="wan-3-reference-to-video", capability="reference_to_video")
+    assert model_id == "wan-3-reference-to-video"
+    assert '"max_references": 5' in info
+    assert '"supported_media": ["image", "video", "audio", "file", "url"]' in info
