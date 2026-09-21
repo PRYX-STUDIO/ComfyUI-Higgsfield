@@ -35,6 +35,7 @@ def reference_prompt(model, references, prompt):
             "audio_url": "Audio track", "file_url": "Document", "link_url": "Web page",
         }.get(field, field)
         entries.append({"position": i + 1, "kind": ref.kind, "label": ref.label,
+                        "source": ref.source,
                         "input": token, "prompt_token": token if verified and ref.kind in {"image", "video", "audio"} else None})
 
     def replace(match):
@@ -58,13 +59,14 @@ def reference_prompt(model, references, prompt):
                 raise ValidationError(f"Prompt references missing media: {mention}.")
     lines = [f"{model.display_name} — reference mapping",
              "Numbering is separate for images, videos and audio.",
-             "Direct inputs come first; collector inputs follow. Batch order is preserved."]
+             "Direct inputs come first; collector inputs follow. Collector slots use numeric order; batches keep their order."]
     if not verified:
         lines.append("Prompt reference syntax is NOT confirmed for this endpoint. Numbered entries below identify payload order only, not supported prompt tokens.")
     for entry in entries:
         label = entry["label"] or "unlabelled"
         suffix = " (duplicate label; cannot use as alias)" if counts[label] > 1 else ""
-        lines.append(f"{entry['input']} ← {label}{suffix}")
+        origin = f" ({entry['source']})" if entry["source"] else ""
+        lines.append(f"{entry['input']} ← {label}{origin}{suffix}")
     if not entries:
         lines.append("No connected reference media.")
     lines.extend(["", "Resolved prompt:", resolved])

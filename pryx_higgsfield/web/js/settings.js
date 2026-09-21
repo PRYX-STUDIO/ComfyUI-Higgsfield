@@ -492,11 +492,12 @@ function updateModelInfo(node, model) {
         lines.push("Resolution is the API quality/size tier, not width × height. Framing uses aspect_ratio when supported; otherwise the source media/model determines it.");
     }
     if (model.notes?.length) lines.push("", "MODEL NOTES", ...model.notes.map(readableModelNote));
-    if (model.capability === "reference_to_video") {
+    if (media.length) {
         lines.push("", "PROMPT REFERENCES",
             "Use Reference Preview to inspect the actual media order without uploading or generating.",
-            "Direct media inputs come first, followed by the collector chain. Images, videos and audio are numbered separately. Batches keep their order.",
-            "Give each item a unique Collector label. Example: person. One item per Collector avoids ambiguous labels.");
+            "Direct media inputs come first, followed by Collector slots in numeric order. Images, videos and audio are numbered separately. Batches keep their order.",
+            "One Collector accepts multiple media connections. New empty sockets appear as you connect media. Default names: image_1, image_2, video_1, audio_1.",
+            "Optional custom names: enter image_1=person and image_2=outfit on separate lines in the Collector names field. Batches use name[1], name[2], etc.");
         if (model.id === "wan-3-reference-to-video") {
             lines.push("Confirmed syntax: Image 1, Image 2, Video 1, Audio 1 (no @ or angle brackets).",
                 "Named prompt example: Use {{ref:person}} for the character and {{ref:camera}} for camera movement.",
@@ -659,6 +660,67 @@ async function updateSoulStyleWidget(node) {
     }
 }
 
+const COLLECTOR_SLOT_LIMITS = { image: 30, video: 10, audio: 10 };
+
+function syncCollectorInputs(node) {
+    if (node.__pryxCollectorSyncing) return;
+    node.__pryxCollectorSyncing = true;
+    try {
+        for (const [kind, limit] of Object.entries(COLLECTOR_SLOT_LIMITS)) {
+            const slotIndex = (input) => input.name === kind ? 1
+                : new RegExp(`^${kind}_(\\d+)$`).exec(input.name)?.[1] * 1 || 0;
+            const connected = (node.inputs || []).filter((input) => slotIndex(input) && input.link != null);
+            const last = Math.max(0, ...connected.map(slotIndex));
+            const visible = Math.min(limit, Math.max(kind === "image" ? 2 : 1, last + 1));
+            // Remove only unused trailing sockets. Connected slots keep their names and links.
+            for (let i = (node.inputs?.length || 0) - 1; i >= 0; i--) {
+                if (slotIndex(node.inputs[i]) > visible && node.inputs[i].link == null) node.removeInput(i);
+            }
+            for (let index = 1; index <= visible; index++) {
+                const name = index === 1 ? kind : `${kind}_${index}`;
+                let input = node.inputs?.find((item) => item.name === name);
+                if (!input) {
+                    node.addInput(name, kind.toUpperCase());
+                    input = node.inputs?.find((item) => item.name === name);
+                }
+                if (input) {
+                    input.label = `${kind}_${index}`;
+                    input.tooltip = `${kind}_${index}: collected in numeric socket order. Use names to assign a custom label. Model limits apply to all connected media combined.`;
+                }
+            }
+        }
+        const legacy = node.widgets?.find((widget) => widget.name === "label");
+        if (legacy) setWidgetVisibility(legacy, Boolean(legacy.value));
+        const size = node.computeSize?.();
+        if (size) node.setSize?.([Math.max(360, node.size?.[0] || 0), size[1]]);
+        node.setDirtyCanvas?.(true, true);
+    } finally {
+        node.__pryxCollectorSyncing = false;
+    }
+}
+
+function attachReferenceCollector(node) {
+    if (!nodeTypeName(node).replace(/\s+/g, "").includes("PRYXHiggsfieldReferenceCollector")) return;
+    // A browser reload may load this script while Python still runs the old schema.
+    if (!node.widgets?.some((widget) => widget.name === "names")) return;
+    if (!node.__pryxCollectorAttached) {
+        node.__pryxCollectorAttached = true;
+        const previous = node.onConnectionsChange;
+        node.onConnectionsChange = function (...args) {
+            const result = previous?.apply(this, args);
+            if (!node.__pryxCollectorSyncing && !node.__pryxCollectorPending) {
+                node.__pryxCollectorPending = true;
+                queueMicrotask(() => {
+                    node.__pryxCollectorPending = false;
+                    syncCollectorInputs(node);
+                });
+            }
+            return result;
+        };
+    }
+    syncCollectorInputs(node);
+}
+
 function attachReferencePreview(node) {
     if (!nodeTypeName(node).replace(/\s+/g, "").includes("PRYXHiggsfieldReferencePreview") || node.__pryxPreviewAttached) return;
     node.__pryxPreviewAttached = true;
@@ -702,6 +764,7 @@ app.registerExtension({
         requestJson(CATALOG_ROUTE).catch(() => {});
     },
     nodeCreated(node) {
+        attachReferenceCollector(node);
         attachReferencePreview(node);
         if (modelCapabilitiesForNode(node) || nodeTypeName(node).replace(/\s+/g, "").includes("PRYXHiggsfieldModelCatalog")) {
             updateCatalogWidgets(node);
@@ -709,6 +772,7 @@ app.registerExtension({
         }
     },
     loadedGraphNode(node) {
+        attachReferenceCollector(node);
         attachReferencePreview(node);
         if (!modelCapabilitiesForNode(node) && !nodeTypeName(node).replace(/\s+/g, "").includes("PRYXHiggsfieldModelCatalog")) return;
         node.__pryxLoadedGraphNode = true;

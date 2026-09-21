@@ -88,3 +88,53 @@ def test_changing_direct_inputs_recomputes_named_reference_index():
     changed, entries, _ = reference_prompt(WAN, combined, "{{ref:person}}")
     assert (original, changed) == ("Image 1", "Image 3")
     assert entries[0]["label"] == "Direct image 1"
+
+
+def test_one_collector_accepts_multiple_media_in_numeric_order():
+    refs = ReferenceCollectorNode().collect(
+        image=["one"], image_10=["ten"], image_2=["two"],
+        video="clip", audio_2="sound", names="image_1=person\nimage_2=outfit\nvideo_1=camera",
+    )[0]
+    assert [ref.value for ref in refs] == ["one", "two", "ten", "clip", "sound"]
+    assert [ref.label for ref in refs] == ["person", "outfit", "image_10", "camera", "audio_2"]
+    prompt, _, info = reference_prompt(WAN, refs, "{{ref:outfit}} and {{ref:camera}}")
+    assert prompt == "Image 2 and Video 1"
+    assert "Collector image_2" in info
+
+
+def test_numbered_collector_batches_get_unique_labels():
+    refs = ReferenceCollectorNode().collect(image=["one", "two"], names="image_1=person")[0]
+    assert [ref.label for ref in refs] == ["person[1]", "person[2]"]
+    assert reference_prompt(WAN, refs, "{{ref:person[2]}}")[0] == "Image 2"
+
+
+@pytest.mark.parametrize("names", ["image_1 person", "image_31=person", "image_1=", "image_1=a\nimage_1=b", "image_1={person}"])
+def test_invalid_collector_names_are_rejected(names):
+    with pytest.raises(ValidationError):
+        ReferenceCollectorNode().collect(names=names)
+
+
+def test_preview_lists_every_reference_model_and_preserves_end_frame():
+    choices = ReferencePreviewNode.INPUT_TYPES()["required"]["model"][0]
+    assert set(choices) == {m.id for m in CATALOG.models if m.input_media and m.status.value == "active"}
+    assert "grok-image-2" in choices
+    result = ReferencePreviewNode().preview("seedance-2-5-image-to-video", image=["start"], end_image=["end"])
+    refs = result["result"][1]
+    assert [ref.field for ref in refs] == ["image_url", "end_image_url"]
+    assert "End image" in result["result"][3]
+
+
+def test_image_edit_preview_lists_multiple_images_without_claiming_prompt_tokens():
+    refs = ReferenceCollectorNode().collect(image=["one"], image_2=["two"])[0]
+    result = ReferencePreviewNode().preview("grok-image-2", references=refs)
+    info = result["result"][3]
+    assert "Image 1 ← image_1" in info
+    assert "Image 2 ← image_2" in info
+    assert "NOT confirmed" in info
+
+
+def test_legacy_collector_chain_remains_compatible():
+    first = ReferenceCollectorNode().collect(image=["one"], label="person")[0]
+    second = ReferenceCollectorNode().collect(references=first, image=["two"], label="outfit")[0]
+    assert [ref.value for ref in second] == ["one", "two"]
+    assert reference_prompt(WAN, second, "{{ref:outfit}}")[0] == "Image 2"

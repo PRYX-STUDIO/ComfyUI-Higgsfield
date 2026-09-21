@@ -470,15 +470,16 @@ class ReferencePreviewNode:
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"model": (_models(Capability.REFERENCE_TO_VIDEO),)},
+        return {"required": {"model": ([m.id for m in _CATALOG.models if m.input_media and m.status.value == "active"],)},
                 "optional": {
                     "prompt": ("STRING", {"forceInput": True, "tooltip": "Use {{ref:label}} for named references where supported. This preview never uploads or generates."}),
                     "references": (ReferenceCollection.TYPE,),
                     "image": ("IMAGE",), "video": ("VIDEO",), "audio": ("AUDIO",),
+                    "end_image": ("IMAGE", {"tooltip": "Explicit end frame, only for models supporting it."}),
                 }}
 
-    def preview(self, model, prompt="", references=None, image=None, video=None, audio=None):
-        refs = _with_reference_inputs(references, image=image, video=video, audio=audio, model_id=model)
+    def preview(self, model, prompt="", references=None, image=None, video=None, audio=None, end_image=None):
+        refs = _with_reference_inputs(references, image=image, video=video, audio=audio, end_image=end_image, model_id=model)
         _, _, info = reference_prompt(_CATALOG.get(model), refs, prompt)
         # Preserve aliases so the receiving generator validates the final mapping again.
         return {"ui": {"text": [info]}, "result": (prompt, refs, model, info)}

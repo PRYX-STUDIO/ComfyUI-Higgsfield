@@ -16,6 +16,7 @@ class Reference:
     url: str | None = None
     label: str = ""
     field: str = ""
+    source: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         result = {"kind": self.kind}
@@ -25,6 +26,8 @@ class Reference:
             result["label"] = self.label
         if self.field:
             result["field"] = self.field
+        if self.source:
+            result["source"] = self.source
         return result
 
 
@@ -50,6 +53,7 @@ def _coerce_reference(value: Reference | Mapping[str, Any]) -> Reference:
             url=value.get("url"),
             label=str(value.get("label", "")),
             field=str(value.get("field", "")),
+            source=str(value.get("source", "")),
         )
     raise ValidationError("Invalid PRYX Higgsfield reference collection.")
 
@@ -68,6 +72,27 @@ def _split_batch(value: Any) -> list[Any]:
     return [value]
 
 
+COLLECTOR_SLOTS = {"image": 30, "video": 10, "audio": 10}
+
+
+def _collector_names(text: str) -> dict[str, str]:
+    result = {}
+    allowed = {f"{kind}_{index}" for kind, count in COLLECTOR_SLOTS.items() for index in range(1, count + 1)}
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        key, separator, label = line.partition("=")
+        key, label = key.strip(), label.strip()
+        if key in COLLECTOR_SLOTS:
+            key += "_1"
+        if not separator or key not in allowed or not label or any(char in label for char in "{}"):
+            raise ValidationError("Use one name per line, e.g. image_1=person or video_1=camera. Braces are not allowed in names.")
+        if key in result:
+            raise ValidationError(f"Duplicate name assignment for {key}.")
+        result[key] = label
+    return result
+
+
 class ReferenceCollectorNode:
     CATEGORY = "PRYX/Higgsfield"
     FUNCTION = "collect"
@@ -77,7 +102,7 @@ class ReferenceCollectorNode:
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {
+        inputs = {
             "optional": {
                 "references": (ReferenceCollection.TYPE,),
                 "image": ("IMAGE",),
@@ -85,9 +110,14 @@ class ReferenceCollectorNode:
                 "audio": ("AUDIO",),
                 "external_url": ("STRING", {"default": "", "multiline": False}),
                 "external_type": (["url", "file"], {"default": "url"}),
-                "label": ("STRING", {"default": "", "multiline": False, "tooltip": "Name for newly added media, e.g. person. Use {{ref:person}} in supported models. Use one item per collector for unique names; batches share this label. Check Reference Preview before generating."}),
+                "label": ("STRING", {"default": "", "multiline": False, "tooltip": "Legacy shared label. Prefer names for separate media labels. Existing workflows retain this label."}),
+                "names": ("STRING", {"default": "", "multiline": True, "tooltip": "Optional names, one per line: image_1=person, image_2=outfit, video_1=camera. Otherwise socket names become labels. Batches use name[1], name[2], etc. Reference Preview shows the final mapping."}),
             }
         }
+        for kind, count in COLLECTOR_SLOTS.items():
+            for index in range(2, count + 1):
+                inputs["optional"][f"{kind}_{index}"] = (kind.upper(), {"tooltip": f"{kind.title()} slot {index}. Slots are collected in numeric order, not connection order. Model limits still apply."})
+        return inputs
 
     def collect(
         self,
@@ -98,17 +128,31 @@ class ReferenceCollectorNode:
         external_url: str = "",
         external_type: str = "url",
         label: str = "",
+        names: str = "",
+        **media: Any,
     ):
         label = label.strip()
         if any(char in label for char in "{}"):
             raise ValidationError("Reference labels must not contain braces.")
         result = ReferenceCollection(references or ())
-        if image is not None:
-            result.extend(Reference("image", value=item, label=label) for item in _split_batch(image))
-        if video is not None:
-            result.append(Reference("video", value=video, label=label))
-        if audio is not None:
-            result.append(Reference("audio", value=audio, label=label))
+        assigned = _collector_names(names)
+        allowed_sockets = {f"{kind}_{index}" for kind, count in COLLECTOR_SLOTS.items() for index in range(2, count + 1)}
+        unknown = [name for name, value in media.items() if name not in allowed_sockets and value is not None]
+        if unknown:
+            raise ValidationError("Unsupported Collector socket(s): " + ", ".join(unknown))
+        first = {"image": image, "video": video, "audio": audio}
+        for kind, count in COLLECTOR_SLOTS.items():
+            for index in range(1, count + 1):
+                value = first[kind] if index == 1 else media.get(f"{kind}_{index}")
+                if value is None:
+                    continue
+                slot = f"{kind}_{index}"
+                name = assigned.get(slot, label or slot)
+                items = _split_batch(value) if kind == "image" else [value]
+                for batch_index, item in enumerate(items, 1):
+                    # Keep legacy shared labels unchanged for saved workflows.
+                    item_name = f"{name}[{batch_index}]" if len(items) > 1 and (slot in assigned or not label) else name
+                    result.append(Reference(kind, value=item, label=item_name, source=f"Collector {slot}"))
         if external_url.strip():
             url = external_url.strip()
             parsed = urlsplit(url)
