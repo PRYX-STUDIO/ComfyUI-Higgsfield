@@ -10,7 +10,12 @@ const models = JSON.parse(fs.readFileSync(path.join(__dirname, '../pryx_higgsfie
 function fixture() {
     const elements = [];
     const context = { nodeTypeName: (node) => node.type, queueMicrotask,
-        setWidgetVisibility(widget, visible) { widget.hidden = !visible; }, document: { createElement(tag) {
+        setWidgetVisibility(widget, visible) { widget.hidden = !visible; },
+        setWidgetValue(node, widget, value) {
+            widget.value = value;
+            const index = node.widgets?.indexOf(widget) ?? -1;
+            if (index >= 0 && Array.isArray(node.widgets_values)) node.widgets_values[index] = value;
+        }, document: { createElement(tag) {
         const element = { tag, style: {}, children: [], setAttribute() {},
             append(...items) { this.children.push(...items); },
             addEventListener(name, callback) { this[name] = callback; } };
@@ -38,6 +43,21 @@ test('model info distinguishes confirmed Wan tokens from unconfirmed Seedance sy
     context.updateModelInfo(node, models.find(m => m.id === 'seedance-2-5-reference-to-video'));
     assert.match(node.widgets[0].__pryxInfoElement.textContent, /aliases are blocked/);
     assert.doesNotMatch(node.widgets[0].__pryxInfoElement.textContent, /Confirmed syntax:/);
+});
+
+test('empty safety widgets are normalized to numeric defaults', () => {
+    const { context } = fixture();
+    const node = {
+        widgets: [
+            { name: 'max_usd', value: '' },
+            { name: 'timeout', value: '' },
+        ],
+        widgets_values: ['', ''],
+    };
+    context.normalizeCoreWidgetValues(node);
+    assert.equal(node.widgets[0].value, 0);
+    assert.equal(node.widgets[1].value, 1800);
+    assert.deepEqual(node.widgets_values, [0, 1800]);
 });
 
 test('image-edit model info also explains reference order and naming', () => {

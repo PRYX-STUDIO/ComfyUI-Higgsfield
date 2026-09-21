@@ -421,6 +421,21 @@ const MEDIA_LABELS = {
     file_url: "Document link", link_url: "Web page link",
 };
 
+function normalizeCoreWidgetValues(node) {
+    const numericWidgets = {
+        max_usd: { defaultValue: 0, minimum: 0, maximum: 10000 },
+        timeout: { defaultValue: 1800, minimum: 10, maximum: 7200 },
+    };
+    for (const widget of node.widgets || []) {
+        const limits = numericWidgets[widget.name];
+        if (!limits) continue;
+        const numericValue = Number(widget.value);
+        const valid = Number.isFinite(numericValue) &&
+            numericValue >= limits.minimum && numericValue <= limits.maximum;
+        setWidgetValue(node, widget, valid ? numericValue : limits.defaultValue);
+    }
+}
+
 function readableModelNote(text) {
     let result = text.replace(/Use public media URLs; `asset:\/\/` references are not supported\.\s*/gi, "");
     for (const [field, label] of Object.entries(MEDIA_LABELS).sort((a, b) => b[0].length - a[0].length)) {
@@ -582,6 +597,7 @@ async function updateCatalogWidgets(node) {
         const compatible = models.filter((item) => item.status === "active" && capabilities.has(item.capability));
         const modelWidget = node.widgets?.find((item) => item.name === "model");
         if (!modelWidget || !compatible.length) return;
+        normalizeCoreWidgetValues(node);
         modelWidget.options = modelWidget.options || {};
         modelWidget.options.values = compatible.map((item) => item.id);
         modelWidget.type = "combo";
