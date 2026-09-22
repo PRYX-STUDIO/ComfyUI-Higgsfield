@@ -459,7 +459,9 @@ function updateModelInfo(node, model) {
             getValue: () => "", setValue: () => {},
         });
         const details = document.createElement("details");
-        details.open = node.properties?.pryx_model_info_expanded !== false;
+        // Keep the potentially long model documentation collapsed by default.
+        // A deliberate user expansion is still remembered for this node.
+        details.open = node.properties?.pryx_model_info_expanded === true;
         const summary = document.createElement("summary");
         summary.style.cssText = "cursor:pointer;font-weight:600;white-space:normal;";
         const body = document.createElement("div");

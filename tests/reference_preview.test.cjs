@@ -38,6 +38,7 @@ function fixture() {
 test('model info distinguishes confirmed Wan tokens from unconfirmed Seedance syntax', () => {
     const { context, node } = fixture();
     context.updateModelInfo(node, models.find(m => m.id === 'wan-3-reference-to-video'));
+    assert.equal(node.widgets[0].element.children[0].open, false);
     assert.match(node.widgets[0].__pryxInfoElement.textContent, /Confirmed syntax: Image 1/);
     assert.match(node.widgets[0].__pryxInfoElement.textContent, /\{\{ref:person\}\}/);
     context.updateModelInfo(node, models.find(m => m.id === 'seedance-2-5-reference-to-video'));
