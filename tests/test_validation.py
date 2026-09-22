@@ -1,8 +1,8 @@
 import pytest
 
-from pryx_higgsfield.catalog import load_bundled_catalog
-from pryx_higgsfield.errors import ValidationError
-from pryx_higgsfield.validation import normalize_arguments, references_to_arguments
+from pryx_comfyui_higgsfield.catalog import load_bundled_catalog
+from pryx_comfyui_higgsfield.errors import ValidationError
+from pryx_comfyui_higgsfield.validation import normalize_arguments, references_to_arguments
 
 
 def test_required_fields_defaults_and_limits():

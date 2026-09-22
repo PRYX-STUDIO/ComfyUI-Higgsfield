@@ -22,7 +22,7 @@ from .types import AcceptedRequest, Estimate, ModelSpec, StatusSnapshot
 
 DEFAULT_TIMEOUT = 1800.0
 DEFAULT_BASE_URL = "https://api.higgsfield.ai"
-USER_AGENT = "pryx-higgsfield-comfyui/1.0"
+USER_AGENT = "pryx-comfyui-higgsfield/1.0"
 MAX_DOWNLOAD_BYTES = 2 * 1024 * 1024 * 1024
 
 

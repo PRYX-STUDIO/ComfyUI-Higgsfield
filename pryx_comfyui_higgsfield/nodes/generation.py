@@ -114,7 +114,7 @@ def _model_inputs(capability: Capability | tuple[Capability, ...] | None = None)
             "widgetType": "COMBO",
             # Current ComfyUI frontends keep the dropdown and expose the
             # required STRING socket side by side; defaultInput is deprecated.
-            "tooltip": "Catalog model ID. Connect PRYX Higgsfield Model Catalog or choose a model from the dropdown.",
+            "tooltip": "Catalog model ID. Connect PRYX ComfyUI Higgsfield Model Catalog or choose a model from the dropdown.",
         },
     )
 
@@ -355,7 +355,7 @@ def _video_result(outcome):
 
 class ImageGenerateEditNode(CatalogGeneratorNode):
     CAPABILITIES = (Capability.IMAGE_GENERATE, Capability.IMAGE_EDIT)
-    CATEGORY = "PRYX/Higgsfield"
+    CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("IMAGE", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
     RETURN_NAMES = ("images", "image_urls", "request_id", "credits", "usd", "status")
@@ -398,7 +398,7 @@ class ImageGenerateEditNode(CatalogGeneratorNode):
 
 class TextToVideoNode(CatalogGeneratorNode):
     CAPABILITIES = (Capability.TEXT_TO_VIDEO,)
-    CATEGORY = "PRYX/Higgsfield"
+    CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
     RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits", "usd", "status")
@@ -426,7 +426,7 @@ class TextToVideoNode(CatalogGeneratorNode):
 
 class ImageToVideoNode(CatalogGeneratorNode):
     CAPABILITIES = (Capability.IMAGE_TO_VIDEO,)
-    CATEGORY = "PRYX/Higgsfield"
+    CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
     RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits", "usd", "status")
@@ -462,7 +462,7 @@ class ImageToVideoNode(CatalogGeneratorNode):
 
 
 class ReferencePreviewNode:
-    CATEGORY = "PRYX/Higgsfield"
+    CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "preview"
     RETURN_TYPES = ("STRING", ReferenceCollection.TYPE, "STRING", "STRING")
     RETURN_NAMES = ("prompt", "references", "model", "reference_info")
@@ -487,7 +487,7 @@ class ReferencePreviewNode:
 
 class ReferenceToVideoNode(CatalogGeneratorNode):
     CAPABILITIES = (Capability.REFERENCE_TO_VIDEO,)
-    CATEGORY = "PRYX/Higgsfield"
+    CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
     RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits", "usd", "status")
@@ -531,7 +531,7 @@ class ReferenceToVideoNode(CatalogGeneratorNode):
 
 class VideoEditNode(CatalogGeneratorNode):
     CAPABILITIES = (Capability.VIDEO_EDIT,)
-    CATEGORY = "PRYX/Higgsfield"
+    CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
     RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits", "usd", "status")
@@ -567,7 +567,7 @@ class VideoEditNode(CatalogGeneratorNode):
 
 class VideoExtendNode(CatalogGeneratorNode):
     CAPABILITIES = (Capability.VIDEO_EXTEND,)
-    CATEGORY = "PRYX/Higgsfield"
+    CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
     RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits", "usd", "status")
@@ -602,7 +602,7 @@ class VideoExtendNode(CatalogGeneratorNode):
 
 
 class AdvancedRequestNode:
-    CATEGORY = "PRYX/Higgsfield"
+    CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("IMAGE", "VIDEO", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
     RETURN_NAMES = ("image", "video", "remote_urls", "request_id", "credits", "usd", "status")

@@ -1,4 +1,4 @@
-"""PRYX Higgsfield for ComfyUI."""
+"""PRYX ComfyUI Higgsfield."""
 
 from pathlib import Path
 

@@ -186,7 +186,7 @@ class MediaArtifact:
 
 
 class MediaStore:
-    def __init__(self, client: HiggsfieldClient, *, node_prefix: str = "pryx_higgsfield") -> None:
+    def __init__(self, client: HiggsfieldClient, *, node_prefix: str = "pryx_comfyui_higgsfield") -> None:
         self.client = client
         self.node_prefix = node_prefix
 

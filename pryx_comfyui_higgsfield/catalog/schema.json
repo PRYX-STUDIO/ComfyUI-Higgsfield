@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "PRYX Higgsfield model catalog",
+  "title": "PRYX ComfyUI Higgsfield model catalog",
   "type": "object",
   "required": ["schema_version", "catalog_version", "source_date", "models"],
   "properties": {

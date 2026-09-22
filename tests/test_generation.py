@@ -1,9 +1,9 @@
 import pytest
 
-from pryx_higgsfield.catalog import load_bundled_catalog
-from pryx_higgsfield.errors import ValidationError
-from pryx_higgsfield.nodes.common import execute_generation
-from pryx_higgsfield.types import Estimate
+from pryx_comfyui_higgsfield.catalog import load_bundled_catalog
+from pryx_comfyui_higgsfield.errors import ValidationError
+from pryx_comfyui_higgsfield.nodes.common import execute_generation
+from pryx_comfyui_higgsfield.types import Estimate
 
 
 class EstimateOnlyClient:

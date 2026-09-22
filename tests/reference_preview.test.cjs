@@ -4,8 +4,8 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 
-const source = fs.readFileSync(path.join(__dirname, '../pryx_higgsfield/web/js/settings.js'), 'utf8');
-const models = JSON.parse(fs.readFileSync(path.join(__dirname, '../pryx_higgsfield/catalog/models.json'), 'utf8')).models;
+const source = fs.readFileSync(path.join(__dirname, '../pryx_comfyui_higgsfield/web/js/settings.js'), 'utf8');
+const models = JSON.parse(fs.readFileSync(path.join(__dirname, '../pryx_comfyui_higgsfield/catalog/models.json'), 'utf8')).models;
 
 function fixture() {
     const elements = [];
@@ -26,7 +26,7 @@ function fixture() {
     vm.runInContext(source.slice(source.indexOf('const MEDIA_LABELS ='), source.indexOf('function updateModelCatalogNode')), context);
     vm.runInContext(source.slice(source.indexOf('function attachReferencePreview'), source.indexOf('app.registerExtension')), context);
     vm.runInContext(source.slice(source.indexOf('const COLLECTOR_SLOT_LIMITS'), source.indexOf('function attachReferencePreview')), context);
-    const node = { type: 'PRYXHiggsfieldReferencePreview', widgets: [], properties: {},
+    const node = { type: 'PRYXComfyUIHiggsfieldReferencePreview', widgets: [], properties: {},
         addDOMWidget(name, type, element, options) {
             const widget = { name, element, options };
             this.widgets.push(widget);
@@ -70,7 +70,7 @@ test('image-edit model info also explains reference order and naming', () => {
 
 test('collector grows sockets and preserves connected slots across reloads', () => {
     const { context, node } = fixture();
-    node.type = 'PRYXHiggsfieldReferenceCollector';
+    node.type = 'PRYXComfyUIHiggsfieldReferenceCollector';
     node.widgets = [{ name: 'names', value: '' }];
     node.inputs = [];
     node.addInput = (name, type) => node.inputs.push({ name, type, link: null });
@@ -94,7 +94,7 @@ test('collector grows sockets and preserves connected slots across reloads', () 
 
 test('old backend schema does not receive unsupported dynamic sockets', () => {
     const { context, node } = fixture();
-    node.type = 'PRYXHiggsfieldReferenceCollector';
+    node.type = 'PRYXComfyUIHiggsfieldReferenceCollector';
     node.inputs = [{ name: 'image', type: 'IMAGE', link: null }];
     context.attachReferenceCollector(node);
     assert.equal(node.inputs.length, 1);

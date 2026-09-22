@@ -1,5 +1,5 @@
-from pryx_higgsfield.polling import PollingConfig, RequestPoller
-from pryx_higgsfield.types import AcceptedRequest, RequestStatus, StatusSnapshot
+from pryx_comfyui_higgsfield.polling import PollingConfig, RequestPoller
+from pryx_comfyui_higgsfield.types import AcceptedRequest, RequestStatus, StatusSnapshot
 
 
 def test_poller_uses_provider_safe_backoff():

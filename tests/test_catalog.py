@@ -2,8 +2,8 @@ import copy
 
 import pytest
 
-from pryx_higgsfield.catalog import load_bundled_catalog
-from pryx_higgsfield.catalog.catalog import CatalogError, validate_catalog_payload
+from pryx_comfyui_higgsfield.catalog import load_bundled_catalog
+from pryx_comfyui_higgsfield.catalog.catalog import CatalogError, validate_catalog_payload
 
 
 def test_bundled_catalog_has_documented_model_families():

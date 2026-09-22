@@ -19,8 +19,8 @@ from ..types import API_BASE_URL, CATALOG_SCHEMA_VERSION, Capability, ModelSpec,
 
 
 CATALOG_REMOTE_URL = (
-    "https://raw.githubusercontent.com/PRYX-STUDIO/ComfyUI-Higgsfield/"
-    "main/pryx_higgsfield/catalog/models.json"
+    "https://raw.githubusercontent.com/PRYX-STUDIO/pryx-comfyui-higgsfield/"
+    "main/pryx_comfyui_higgsfield/catalog/models.json"
 )
 MAX_REMOTE_BYTES = 2 * 1024 * 1024
 REFRESH_INTERVAL_SECONDS = 24 * 60 * 60
@@ -201,7 +201,7 @@ class CatalogManager:
         auto_refresh: bool = True,
         clock: callable = time.time,
     ) -> None:
-        self.cache_path = Path(cache_path) if cache_path else default_user_directory() / ".pryx_higgsfield_catalog.json"
+        self.cache_path = Path(cache_path) if cache_path else default_user_directory() / ".pryx_comfyui_higgsfield_catalog.json"
         self.remote_url = remote_url
         self.auto_refresh = auto_refresh
         self._clock = clock
@@ -232,7 +232,7 @@ class CatalogManager:
     def refresh(self) -> Catalog:
         if self.remote_url != CATALOG_REMOTE_URL:
             raise CatalogError("Remote catalog URL is not the approved PRYX catalog URL.")
-        request = Request(self.remote_url, headers={"User-Agent": "PRYX-Higgsfield-Catalog/1.0"})
+        request = Request(self.remote_url, headers={"User-Agent": "PRYX-ComfyUI-Higgsfield-Catalog/1.0"})
         try:
             with urlopen(request, timeout=15) as response:
                 content_length = response.headers.get("Content-Length")

@@ -8,7 +8,7 @@ from ..catalog import runtime_catalog
 
 
 class ModelCatalogNode:
-    CATEGORY = "PRYX/Higgsfield"
+    CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "select"
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("model_id", "model_info")

@@ -1,14 +1,14 @@
 import json
 
-from pryx_higgsfield.nodes import NODE_CLASS_MAPPINGS
-from pryx_higgsfield.nodes.catalog_node import ModelCatalogNode
-from pryx_higgsfield.nodes.generation import ReferenceToVideoNode, TextToVideoNode
-from pryx_higgsfield.nodes.references import Reference, ReferenceCollectorNode, ReferenceCollection
+from pryx_comfyui_higgsfield.nodes import NODE_CLASS_MAPPINGS
+from pryx_comfyui_higgsfield.nodes.catalog_node import ModelCatalogNode
+from pryx_comfyui_higgsfield.nodes.generation import ReferenceToVideoNode, TextToVideoNode
+from pryx_comfyui_higgsfield.nodes.references import Reference, ReferenceCollectorNode, ReferenceCollection
 
 
 def test_all_public_nodes_are_registered():
-    assert "PRYXHiggsfieldAdvancedRequest" in NODE_CLASS_MAPPINGS
-    assert all(name.startswith("PRYXHiggsfield") for name in NODE_CLASS_MAPPINGS)
+    assert "PRYXComfyUIHiggsfieldAdvancedRequest" in NODE_CLASS_MAPPINGS
+    assert all(name.startswith("PRYXComfyUIHiggsfield") for name in NODE_CLASS_MAPPINGS)
 
 
 def test_reference_collector_preserves_order_and_splits_image_batch():

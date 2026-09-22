@@ -1,13 +1,13 @@
 import pytest
 from types import SimpleNamespace
 
-from pryx_higgsfield.catalog import load_bundled_catalog
-from pryx_higgsfield.errors import ValidationError
-from pryx_higgsfield.nodes.common import execute_generation
-from pryx_higgsfield.nodes.generation import ReferencePreviewNode, _with_reference_inputs
-from pryx_higgsfield.nodes.references import Reference, ReferenceCollectorNode
-from pryx_higgsfield.reference_prompt import reference_prompt
-from pryx_higgsfield.types import Estimate
+from pryx_comfyui_higgsfield.catalog import load_bundled_catalog
+from pryx_comfyui_higgsfield.errors import ValidationError
+from pryx_comfyui_higgsfield.nodes.common import execute_generation
+from pryx_comfyui_higgsfield.nodes.generation import ReferencePreviewNode, _with_reference_inputs
+from pryx_comfyui_higgsfield.nodes.references import Reference, ReferenceCollectorNode
+from pryx_comfyui_higgsfield.reference_prompt import reference_prompt
+from pryx_comfyui_higgsfield.types import Estimate
 
 
 CATALOG = load_bundled_catalog()
@@ -58,7 +58,7 @@ def test_preview_is_local_and_preserves_aliases():
 
 def test_generator_resolves_before_api_and_rejects_before_upload(monkeypatch):
     uploaded, sent = [], []
-    monkeypatch.setattr("pryx_higgsfield.nodes.common.upload_reference",
+    monkeypatch.setattr("pryx_comfyui_higgsfield.nodes.common.upload_reference",
                         lambda client, ref: uploaded.append(ref) or "https://cdn.example/image.png")
     client = SimpleNamespace(estimate=lambda model, args: sent.append(args) or Estimate(1, 0.01))
     refs = [Reference("image", value="image", label="person")]

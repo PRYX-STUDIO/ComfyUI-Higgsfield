@@ -55,7 +55,7 @@ def _coerce_reference(value: Reference | Mapping[str, Any]) -> Reference:
             field=str(value.get("field", "")),
             source=str(value.get("source", "")),
         )
-    raise ValidationError("Invalid PRYX Higgsfield reference collection.")
+    raise ValidationError("Invalid PRYX ComfyUI Higgsfield reference collection.")
 
 
 def _split_batch(value: Any) -> list[Any]:
@@ -94,7 +94,7 @@ def _collector_names(text: str) -> dict[str, str]:
 
 
 class ReferenceCollectorNode:
-    CATEGORY = "PRYX/Higgsfield"
+    CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "collect"
     RETURN_TYPES = (ReferenceCollection.TYPE,)
     RETURN_NAMES = ("references",)

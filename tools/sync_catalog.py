@@ -23,7 +23,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from pryx_higgsfield.catalog.catalog import validate_catalog_payload
+from pryx_comfyui_higgsfield.catalog.catalog import validate_catalog_payload
 
 
 INDEX_URL = "https://docs.higgsfield.ai/docs/llms.txt"
@@ -39,7 +39,7 @@ DEFAULT_RE = re.compile(r'default="([^"]+)"')
 
 
 def fetch(url: str) -> str:
-    request = Request(url, headers={"User-Agent": "PRYX-Higgsfield-Catalog-Sync/1.0"})
+    request = Request(url, headers={"User-Agent": "PRYX-ComfyUI-Higgsfield-Catalog-Sync/1.0"})
     with urlopen(request, timeout=30) as response:
         content = response.read(MAX_PAGE_BYTES + 1)
     if len(content) > MAX_PAGE_BYTES:
@@ -236,7 +236,7 @@ def build_catalog(index_url: str = INDEX_URL) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--index-url", default=INDEX_URL)
-    parser.add_argument("--output", type=Path, default=PROJECT_ROOT / "pryx_higgsfield/catalog/models.json")
+    parser.add_argument("--output", type=Path, default=PROJECT_ROOT / "pryx_comfyui_higgsfield/catalog/models.json")
     parser.add_argument("--check", action="store_true", help="Fetch and validate without writing.")
     parser.add_argument("--existing", action="store_true", help="Audit existing model pages, preserving workflow IDs and order.")
     args = parser.parse_args()

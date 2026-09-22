@@ -17,7 +17,7 @@ from typing import Mapping
 from .errors import CredentialError
 
 
-STORE_FILENAME = ".pryx_higgsfield_credentials.json"
+STORE_FILENAME = ".pryx_comfyui_higgsfield_credentials.json"
 
 
 @dataclass(frozen=True, repr=False)

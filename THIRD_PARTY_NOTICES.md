@@ -9,7 +9,7 @@ License. Source and license information:
     https://github.com/higgsfield-ai/higgsfield-client
 
 The dependency is used for compatibility with the official Higgsfield Python
-client. PRYX Higgsfield adds the catalog, estimate guard, local credential
+client. PRYX ComfyUI Higgsfield adds the catalog, estimate guard, local credential
 routes, ComfyUI media lifecycle, and progress handling around the provider
 transport.
 

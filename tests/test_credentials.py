@@ -1,4 +1,4 @@
-from pryx_higgsfield.credentials import CredentialStore, mask_key_id, resolve_credentials
+from pryx_comfyui_higgsfield.credentials import CredentialStore, mask_key_id, resolve_credentials
 
 
 def test_environment_priority_and_masking(tmp_path):

@@ -28,7 +28,7 @@ class StyleManager:
         cache_path: str | os.PathLike[str] | None = None,
         clock=time.time,
     ) -> None:
-        self.cache_path = Path(cache_path) if cache_path else default_user_directory() / ".pryx_higgsfield_soul_styles.json"
+        self.cache_path = Path(cache_path) if cache_path else default_user_directory() / ".pryx_comfyui_higgsfield_soul_styles.json"
         self.clock = clock
 
     def load(

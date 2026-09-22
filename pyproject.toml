@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pryx-higgsfield"
+name = "pryx-comfyui-higgsfield"
 version = "1.0.0"
 description = "Catalog-driven Higgsfield API nodes for ComfyUI."
 readme = "README.md"
@@ -16,13 +16,13 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/PRYX-STUDIO/ComfyUI-Higgsfield"
-Repository = "https://github.com/PRYX-STUDIO/ComfyUI-Higgsfield"
+Homepage = "https://github.com/PRYX-STUDIO/pryx-comfyui-higgsfield"
+Repository = "https://github.com/PRYX-STUDIO/pryx-comfyui-higgsfield"
 Documentation = "https://docs.higgsfield.ai/docs/llms.txt"
 
 [tool.comfy]
 PublisherId = "pryx-studio"
-DisplayName = "PRYX Higgsfield"
+DisplayName = "PRYX ComfyUI Higgsfield"
 RequiresComfyUI = ">=0.35.0"
 FrontendVersion = ">=1.53.6"
 
@@ -32,4 +32,4 @@ FrontendVersion = ">=1.53.6"
 where = ["."]
 
 [tool.setuptools.package-data]
-pryx_higgsfield = ["catalog/*.json", "web/js/*.js"]
+pryx_comfyui_higgsfield = ["catalog/*.json", "web/js/*.js"]

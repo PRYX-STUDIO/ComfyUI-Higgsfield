@@ -18,17 +18,17 @@ _prompt_server: Any = None
 
 @lru_cache(maxsize=1)
 def catalog_manager() -> CatalogManager:
-    return CatalogManager(cache_path=default_user_directory() / ".pryx_higgsfield_catalog.json")
+    return CatalogManager(cache_path=default_user_directory() / ".pryx_comfyui_higgsfield_catalog.json")
 
 
 @lru_cache(maxsize=1)
 def credential_store() -> CredentialStore:
-    return CredentialStore(default_user_directory() / ".pryx_higgsfield_credentials.json")
+    return CredentialStore(default_user_directory() / ".pryx_comfyui_higgsfield_credentials.json")
 
 
 @lru_cache(maxsize=1)
 def style_manager() -> StyleManager:
-    return StyleManager(cache_path=default_user_directory() / ".pryx_higgsfield_soul_styles.json")
+    return StyleManager(cache_path=default_user_directory() / ".pryx_comfyui_higgsfield_soul_styles.json")
 
 
 def register_routes() -> None:
@@ -137,13 +137,13 @@ def register_routes() -> None:
         except HiggsfieldError as error:
             return web.json_response({"error": redact_secrets(str(error))}, status=400)
 
-    routes.get("/pryx-higgsfield/settings")(get_settings)
-    routes.put("/pryx-higgsfield/settings")(put_settings)
-    routes.delete("/pryx-higgsfield/settings")(delete_settings)
-    routes.post("/pryx-higgsfield/settings/validate")(validate_settings)
-    routes.get("/pryx-higgsfield/catalog")(get_catalog)
-    routes.post("/pryx-higgsfield/catalog/refresh")(refresh_catalog)
-    routes.get("/pryx-higgsfield/styles")(get_styles)
+    routes.get("/pryx-comfyui-higgsfield/settings")(get_settings)
+    routes.put("/pryx-comfyui-higgsfield/settings")(put_settings)
+    routes.delete("/pryx-comfyui-higgsfield/settings")(delete_settings)
+    routes.post("/pryx-comfyui-higgsfield/settings/validate")(validate_settings)
+    routes.get("/pryx-comfyui-higgsfield/catalog")(get_catalog)
+    routes.post("/pryx-comfyui-higgsfield/catalog/refresh")(refresh_catalog)
+    routes.get("/pryx-comfyui-higgsfield/styles")(get_styles)
     _registered = True
 
 
@@ -160,7 +160,7 @@ def emit_progress(event: ProgressEvent | dict[str, Any]) -> None:
         return
     payload = event.as_dict() if isinstance(event, ProgressEvent) else dict(event)
     try:
-        _prompt_server.send_sync("pryx_higgsfield.progress", payload)
+        _prompt_server.send_sync("pryx_comfyui_higgsfield.progress", payload)
     except Exception:
         # Progress is auxiliary. A websocket incompatibility must not fail a
         # generation that is otherwise running correctly.

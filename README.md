@@ -1,12 +1,12 @@
-# PRYX Higgsfield for ComfyUI
+# PRYX ComfyUI Higgsfield
 
-[![Tests](https://github.com/PRYX-STUDIO/ComfyUI-Higgsfield/actions/workflows/tests.yml/badge.svg)](https://github.com/PRYX-STUDIO/ComfyUI-Higgsfield/actions/workflows/tests.yml)
+[![Tests](https://github.com/PRYX-STUDIO/pryx-comfyui-higgsfield/actions/workflows/tests.yml/badge.svg)](https://github.com/PRYX-STUDIO/pryx-comfyui-higgsfield/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ComfyUI](https://img.shields.io/badge/ComfyUI-%E2%89%A50.35.0-4f46e5)](https://github.com/comfyanonymous/ComfyUI)
 
 Catalog-driven Higgsfield API nodes for ComfyUI.
 
-PRYX Higgsfield lets you call the documented Higgsfield image and video
+PRYX ComfyUI Higgsfield lets you call the documented Higgsfield image and video
 endpoints from normal ComfyUI workflows. Model-specific controls, choices,
 limits, and tooltips come from the bundled catalog, so a node only exposes the
 parameters supported by its selected model.
@@ -50,7 +50,7 @@ native `IMAGE`, `VIDEO`, and `AUDIO` types.
 ### ComfyUI Manager
 
 After the package is available in the ComfyUI Registry, search for
-**PRYX Higgsfield** in ComfyUI Manager, install it, and restart ComfyUI.
+**PRYX ComfyUI Higgsfield** in ComfyUI Manager, install it, and restart ComfyUI.
 
 ### Git installation
 
@@ -59,15 +59,15 @@ dependencies with the same Python environment that runs ComfyUI:
 
 ```powershell
 cd ComfyUI/custom_nodes
-git clone https://github.com/PRYX-STUDIO/ComfyUI-Higgsfield.git PRYX-Higgsfield
-python -m pip install -r .\PRYX-Higgsfield\requirements.txt
+git clone https://github.com/PRYX-STUDIO/pryx-comfyui-higgsfield.git pryx-comfyui-higgsfield
+python -m pip install -r .\pryx-comfyui-higgsfield\requirements.txt
 ```
 
 For the Windows portable ComfyUI distribution, use its bundled interpreter
 instead:
 
 ```powershell
-..\python_embeded\python.exe -m pip install -r .\PRYX-Higgsfield\requirements.txt
+..\python_embeded\python.exe -m pip install -r .\pryx-comfyui-higgsfield\requirements.txt
 ```
 
 Restart ComfyUI after installation. When updating an existing checkout, pull
@@ -76,7 +76,7 @@ frontend extension is reloaded as well.
 
 ## Credentials
 
-Open **ComfyUI Settings → PRYX Higgsfield → Credentials** and enter:
+Open **ComfyUI Settings → PRYX ComfyUI Higgsfield → Credentials** and enter:
 
 - **Key ID** — your Higgsfield API key ID
 - **Secret** — your Higgsfield API secret
@@ -126,12 +126,12 @@ building the workflow.
 
 ## Nodes
 
-All nodes are available under **PRYX/Higgsfield**. Generator nodes have a
+All nodes are available under **PRYX/ComfyUI/Higgsfield**. Generator nodes have a
 model dropdown, a collapsed model-information panel, and dynamic controls.
 Expand the information panel to see the selected model's supported media,
 limits, output settings, and reference guidance.
 
-### PRYX Higgsfield Model Catalog
+### PRYX ComfyUI Higgsfield Model Catalog
 
 Use this node when you want to choose a model once and reuse it in one or more
 generator nodes.
@@ -153,7 +153,7 @@ The catalog node is optional. Every generator also has its own validated model
 dropdown. The catalog is useful for central selection, filtering, or sharing a
 model choice between nodes.
 
-### PRYX Higgsfield Reference Collector
+### PRYX ComfyUI Higgsfield Reference Collector
 
 Collect several local images, videos, or audio inputs into one ordered
 `references` value. One Collector is enough; chaining multiple Collectors is
@@ -179,7 +179,7 @@ converts it to a supported format and uploads it through Higgsfield's
 presigned upload flow. `external_url` is different: it remains an external
 URL and must already be publicly reachable by the provider.
 
-### PRYX Higgsfield Reference Preview
+### PRYX ComfyUI Higgsfield Reference Preview
 
 Inspect the final reference order and prompt mapping before running a
 generator. This node performs no media upload and makes no Higgsfield API
@@ -195,7 +195,7 @@ request.
 Run the preview after changing media, labels, or the model. Its text output
 shows which media item becomes `Image 1`, `Video 1`, and so on.
 
-### PRYX Higgsfield Image Generate & Edit
+### PRYX ComfyUI Higgsfield Image Generate & Edit
 
 Generate images or edit images with the catalog's image endpoints. The model
 dropdown covers the current SOUL, Recraft, Marketing Studio, and Grok image
@@ -204,7 +204,7 @@ images. The visible parameter widgets change with the selected model.
 
 **Outputs:** `images`, `image_urls`, `request_id`, `credits`, `usd`, `status`
 
-### PRYX Higgsfield Text to Video
+### PRYX ComfyUI Higgsfield Text to Video
 
 Generate a video from a text prompt. The node exposes the controls supported by
 the selected text-to-video model, such as resolution, aspect ratio, duration,
@@ -213,7 +213,7 @@ audio, sound, multi-shot settings, or a seed.
 **Outputs:** `video`, `local_file`, `remote_url`, `request_id`, `credits`, `usd`,
 `status`
 
-### PRYX Higgsfield Image to Video
+### PRYX ComfyUI Higgsfield Image to Video
 
 Animate a starting image. Connect one native `IMAGE` to `image`; models that
 support an ending frame expose the optional `end_image` input. Some models also
@@ -223,7 +223,7 @@ catalog models documented for the Higgsfield image-to-video capability.
 **Outputs:** `video`, `local_file`, `remote_url`, `request_id`, `credits`, `usd`,
 `status`
 
-### PRYX Higgsfield Reference to Video
+### PRYX ComfyUI Higgsfield Reference to Video
 
 Generate a video from ordered multimodal references. Depending on the selected
 model, references may include images, videos, audio, documents, or web links.
@@ -233,7 +233,7 @@ for several inputs.
 **Outputs:** `video`, `local_file`, `remote_url`, `request_id`, `credits`, `usd`,
 `status`
 
-### PRYX Higgsfield Video Edit
+### PRYX ComfyUI Higgsfield Video Edit
 
 Edit an existing video with a prompt and the controls supported by the active
 catalog model. Connect the source video to `video`; optional model-supported
@@ -242,7 +242,7 @@ references can be supplied through `references`.
 **Outputs:** `video`, `local_file`, `remote_url`, `request_id`, `credits`, `usd`,
 `status`
 
-### PRYX Higgsfield Video Extend
+### PRYX ComfyUI Higgsfield Video Extend
 
 Extend an existing video. Connect the source clip to `video` and set the
 model-supported duration and output options. The selected model determines the
@@ -251,7 +251,7 @@ valid duration range.
 **Outputs:** `video`, `local_file`, `remote_url`, `request_id`, `credits`, `usd`,
 `status`
 
-### PRYX Higgsfield Advanced Request
+### PRYX ComfyUI Higgsfield Advanced Request
 
 Send catalog-controlled JSON arguments when a specialized workflow needs more
 direct control. The model is still selected from the validated catalog; this
@@ -382,9 +382,13 @@ supported inputs, choices, ranges, defaults, and documentation links. The
 current bundled revision is `2026-09-21.2` with 25 documented endpoint
 entries: six image entries and nineteen video entries.
 
-### Current catalog coverage
+The table below is a snapshot of this bundled revision, not a provider-wide
+inventory. The live dropdown in each node is authoritative for the catalog
+loaded by that ComfyUI installation.
 
-| Capability | Current entries |
+### Bundled catalog snapshot
+
+| Capability | Bundled examples |
 | --- | --- |
 | Image generation | SOUL 2, SOUL Cinema, SOUL, Recraft V4.1 Pro |
 | Image editing | Marketing Studio Image, Grok Image 2.0 |
@@ -405,7 +409,7 @@ not document a compatible endpoint for that capability. The dropdowns therefore
 filter by capability: an item missing from **Reference to Video** is not a
 statement that the model is unavailable from Higgsfield in general.
 
-To refresh manually, open **ComfyUI Settings → PRYX Higgsfield → Model
+To refresh manually, open **ComfyUI Settings → PRYX ComfyUI Higgsfield → Model
 catalog**, click **Refresh catalog**, restart ComfyUI, and reload the browser.
 
 ## Outputs
@@ -477,7 +481,7 @@ node --test tests/reference_preview.test.cjs
 Validate the Python import path:
 
 ```powershell
-python -m compileall -q pryx_higgsfield tools __init__.py
+python -m compileall -q pryx_comfyui_higgsfield tools __init__.py
 ```
 
 Validate the catalog against the official documentation pages:
@@ -507,4 +511,4 @@ separate cost approval and an explicit positive `max_usd` value.
 - [Higgsfield API documentation](https://docs.higgsfield.ai/docs/models)
 - [Higgsfield video model documentation](https://docs.higgsfield.ai/docs/models/video-generation)
 - [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
-- [Issue tracker](https://github.com/PRYX-STUDIO/ComfyUI-Higgsfield/issues)
+- [Issue tracker](https://github.com/PRYX-STUDIO/pryx-comfyui-higgsfield/issues)

@@ -6,15 +6,15 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
-from pryx_higgsfield.catalog import load_bundled_catalog
-from pryx_higgsfield.client import HiggsfieldClient
-from pryx_higgsfield.credentials import Credentials
-from pryx_higgsfield.errors import ValidationError
-from pryx_higgsfield.nodes import generation
-from pryx_higgsfield.nodes.common import execute_generation
-from pryx_higgsfield.nodes.references import Reference, ReferenceCollection
-from pryx_higgsfield.types import Estimate
-from pryx_higgsfield.validation import normalize_arguments, references_to_arguments
+from pryx_comfyui_higgsfield.catalog import load_bundled_catalog
+from pryx_comfyui_higgsfield.client import HiggsfieldClient
+from pryx_comfyui_higgsfield.credentials import Credentials
+from pryx_comfyui_higgsfield.errors import ValidationError
+from pryx_comfyui_higgsfield.nodes import generation
+from pryx_comfyui_higgsfield.nodes.common import execute_generation
+from pryx_comfyui_higgsfield.nodes.references import Reference, ReferenceCollection
+from pryx_comfyui_higgsfield.types import Estimate
+from pryx_comfyui_higgsfield.validation import normalize_arguments, references_to_arguments
 from tools.sync_catalog import parse_page
 
 
@@ -106,7 +106,7 @@ def test_all_documented_defaults_and_invalid_choices(model):
 
 def test_required_images_validate_before_upload_and_reach_estimate(monkeypatch):
     uploads, seen = [], []
-    monkeypatch.setattr("pryx_higgsfield.nodes.common.upload_reference",
+    monkeypatch.setattr("pryx_comfyui_higgsfield.nodes.common.upload_reference",
         lambda client, ref: uploads.append(ref) or "https://cdn.example/start.png")
     client = SimpleNamespace(estimate=lambda model, args: seen.append(args) or Estimate(1, 0.01))
     execute_generation("seedance-2-5-image-to-video", {}, mode="estimate_only",

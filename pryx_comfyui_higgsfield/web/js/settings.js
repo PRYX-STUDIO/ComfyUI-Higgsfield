@@ -1,27 +1,27 @@
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
 
-/* PRYX Higgsfield ComfyUI extension.
+/* PRYX ComfyUI Higgsfield extension.
  *
  * Secrets are sent only to the local ComfyUI settings routes. They are never
  * returned to this script after saving and are not written to browser storage.
  */
 
-const SETTINGS_ROUTE = "/pryx-higgsfield/settings";
-const VALIDATE_ROUTE = "/pryx-higgsfield/settings/validate";
-const CATALOG_ROUTE = "/pryx-higgsfield/catalog";
-const REFRESH_ROUTE = "/pryx-higgsfield/catalog/refresh";
+const SETTINGS_ROUTE = "/pryx-comfyui-higgsfield/settings";
+const VALIDATE_ROUTE = "/pryx-comfyui-higgsfield/settings/validate";
+const CATALOG_ROUTE = "/pryx-comfyui-higgsfield/catalog";
+const REFRESH_ROUTE = "/pryx-comfyui-higgsfield/catalog/refresh";
 
 const GENERATOR_CAPABILITIES = {
-    PRYXHiggsfieldImageGenerateEdit: new Set(["image_generate", "image_edit"]),
-    PRYXHiggsfieldTextToVideo: new Set(["text_to_video"]),
-    PRYXHiggsfieldImageToVideo: new Set(["image_to_video"]),
-    PRYXHiggsfieldReferenceToVideo: new Set(["reference_to_video"]),
-    PRYXHiggsfieldVideoEdit: new Set(["video_edit"]),
-    PRYXHiggsfieldVideoExtend: new Set(["video_extend"]),
+    PRYXComfyUIHiggsfieldImageGenerateEdit: new Set(["image_generate", "image_edit"]),
+    PRYXComfyUIHiggsfieldTextToVideo: new Set(["text_to_video"]),
+    PRYXComfyUIHiggsfieldImageToVideo: new Set(["image_to_video"]),
+    PRYXComfyUIHiggsfieldReferenceToVideo: new Set(["reference_to_video"]),
+    PRYXComfyUIHiggsfieldVideoEdit: new Set(["video_edit"]),
+    PRYXComfyUIHiggsfieldVideoExtend: new Set(["video_extend"]),
 };
-GENERATOR_CAPABILITIES.PRYXHiggsfieldAdvancedRequest = new Set(Object.values(GENERATOR_CAPABILITIES).flatMap((set) => [...set]));
-const NODE_UI_SCHEMA_VERSION = 4;
+GENERATOR_CAPABILITIES.PRYXComfyUIHiggsfieldAdvancedRequest = new Set(Object.values(GENERATOR_CAPABILITIES).flatMap((set) => [...set]));
+const NODE_UI_SCHEMA_VERSION = 5;
 
 const ALWAYS_VISIBLE_WIDGETS = new Set(["model", "mode", "max_usd", "auto_save", "timeout", "model_info", "arguments_json"]);
 const MEDIA_PARAMETER_NAMES = new Set([
@@ -56,7 +56,7 @@ function notify(message, error = false) {
     if (app?.ui?.dialog) {
         app.ui.dialog.show(message);
     } else {
-        console[error ? "error" : "info"]("[PRYX Higgsfield] " + message);
+        console[error ? "error" : "info"]("[PRYX ComfyUI Higgsfield] " + message);
     }
 }
 
@@ -99,7 +99,7 @@ function createCatalogRefreshSetting() {
 }
 
 function closeCredentialDialog() {
-    const overlay = document.getElementById("pryx-higgsfield-credentials");
+    const overlay = document.getElementById("pryx-comfyui-higgsfield-credentials");
     if (!overlay) return;
     overlay.__pryxClose?.();
     overlay.remove();
@@ -111,7 +111,7 @@ function openCredentialDialog(event) {
     closeCredentialDialog();
 
     const overlay = document.createElement("div");
-    overlay.id = "pryx-higgsfield-credentials";
+    overlay.id = "pryx-comfyui-higgsfield-credentials";
     overlay.setAttribute("role", "presentation");
     overlay.style.cssText =
         "position: fixed; inset: 0; z-index: 10000; display: grid; " +
@@ -120,7 +120,7 @@ function openCredentialDialog(event) {
     const panel = document.createElement("section");
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-modal", "true");
-    panel.setAttribute("aria-labelledby", "pryx-higgsfield-credentials-title");
+    panel.setAttribute("aria-labelledby", "pryx-comfyui-higgsfield-credentials-title");
     panel.style.cssText =
         "width: min(520px, 100%); box-sizing: border-box; padding: 24px; " +
         "border: 1px solid var(--border-color, #4b5563); border-radius: 14px; " +
@@ -129,7 +129,7 @@ function openCredentialDialog(event) {
     panel.innerHTML =
         '<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">' +
         '<div>' +
-        '<h2 id="pryx-higgsfield-credentials-title" style="margin:0 0 8px; font-size:1.15rem;">PRYX Higgsfield credentials</h2>' +
+        '<h2 id="pryx-comfyui-higgsfield-credentials-title" style="margin:0 0 8px; font-size:1.15rem;">PRYX ComfyUI Higgsfield credentials</h2>' +
         '<p style="margin:0 0 20px; opacity:.75; line-height:1.45;">The credentials stay on this ComfyUI installation and never become workflow inputs.</p>' +
         '</div>' +
         '<button type="button" data-action="close" aria-label="Close" style="border:0; background:transparent; color:inherit; font-size:1.4rem; cursor:pointer;">×</button>' +
@@ -221,7 +221,7 @@ function handleProgress(event) {
     const node = data.node_id ? app.graph.getNodeById?.(Number(data.node_id)) : null;
     if (!node) return;
     node.properties = node.properties || {};
-    node.properties.pryx_higgsfield_status = {
+    node.properties.pryx_comfyui_higgsfield_status = {
         phase: data.phase,
         status: data.status || null,
         request_id: data.request_id || null,
@@ -378,7 +378,7 @@ function resetLegacyWidgetValues(node, parameters) {
 }
 
 function modelTooltip(model) {
-    if (!model) return "Choose a model from the validated PRYX Higgsfield catalog.";
+    if (!model) return "Choose a model from the validated PRYX ComfyUI Higgsfield catalog.";
     const media = model.input_media?.length ? model.input_media.join(", ") : "none";
     const limit = model.max_references == null ? "see per-input limits below" : `up to ${model.max_references}`;
     return `${model.display_name} (${model.id}). Capability: ${model.capability}. Supported references: ${media}; ${limit} total reference(s).`;
@@ -553,7 +553,7 @@ function updateModelCatalogNode(node, models) {
     modelWidget.options.tooltip = modelTooltip(selected);
     modelWidget.tooltip = modelTooltip(selected);
     node.properties = node.properties || {};
-    node.properties.pryx_higgsfield_model_info = selected ? {
+    node.properties.pryx_comfyui_higgsfield_model_info = selected ? {
         display_name: selected.display_name,
         capability: selected.capability,
         input_media: selected.input_media || [],
@@ -611,10 +611,10 @@ async function updateCatalogWidgets(node) {
         modelWidget.tooltip = modelTooltip(model);
 
         const parameters = new Map((model?.parameters || []).map((item) => [item.name === "shots" ? "shots_json" : item.name, item]));
-        const previousModelInfo = node.properties?.pryx_higgsfield_model_info;
+        const previousModelInfo = node.properties?.pryx_comfyui_higgsfield_model_info;
         const modelChanged = Boolean(previousModelInfo?.id && previousModelInfo.id !== model?.id);
         const legacyWorkflow = node.__pryxLegacyWorkflow === true ||
-            node.properties?.pryx_higgsfield_ui_schema !== NODE_UI_SCHEMA_VERSION;
+            node.properties?.pryx_comfyui_higgsfield_ui_schema !== NODE_UI_SCHEMA_VERSION;
         if (legacyWorkflow) resetLegacyWidgetValues(node, parameters);
         for (const widget of node.widgets || []) {
             if (widget.name === "mode") {
@@ -641,7 +641,7 @@ async function updateCatalogWidgets(node) {
         }
         updateMediaInputs(node, model);
         node.properties = node.properties || {};
-        node.properties.pryx_higgsfield_model_info = model ? {
+        node.properties.pryx_comfyui_higgsfield_model_info = model ? {
             id: model.id,
             display_name: model.display_name,
             capability: model.capability,
@@ -650,8 +650,8 @@ async function updateCatalogWidgets(node) {
             max_references: model.max_references ?? null,
             tooltip: modelTooltip(model),
         } : null;
-        node.properties.pryx_higgsfield_active_parameters = [...parameters.keys()];
-        node.properties.pryx_higgsfield_ui_schema = NODE_UI_SCHEMA_VERSION;
+        node.properties.pryx_comfyui_higgsfield_active_parameters = [...parameters.keys()];
+        node.properties.pryx_comfyui_higgsfield_ui_schema = NODE_UI_SCHEMA_VERSION;
         node.__pryxLegacyWorkflow = false;
         if (!node.__pryxInfoSized) {
             const size = node.computeSize?.();
@@ -661,7 +661,7 @@ async function updateCatalogWidgets(node) {
         node.setDirtyCanvas?.(true, true);
         attachCatalogCallbacks(node);
     } catch (error) {
-        console.debug("[PRYX Higgsfield] catalog widget update skipped", error);
+        console.debug("[PRYX ComfyUI Higgsfield] catalog widget update skipped", error);
     }
 }
 
@@ -671,10 +671,10 @@ async function updateSoulStyleWidget(node) {
     try {
         const id = node.widgets?.find((item) => item.name === "model")?.value;
         if (!["soul-2", "soul-standard"].includes(id)) return;
-        const result = await requestJson("/pryx-higgsfield/styles?variant=" + (id === "soul-2" ? "soul-2" : "soul"));
+        const result = await requestJson("/pryx-comfyui-higgsfield/styles?variant=" + (id === "soul-2" ? "soul-2" : "soul"));
         widget.options.values = (result.styles || []).map((item) => item.style_id);
     } catch (error) {
-        console.debug("[PRYX Higgsfield] style widget update skipped", error);
+        console.debug("[PRYX ComfyUI Higgsfield] style widget update skipped", error);
     }
 }
 
@@ -718,7 +718,7 @@ function syncCollectorInputs(node) {
 }
 
 function attachReferenceCollector(node) {
-    if (!nodeTypeName(node).replace(/\s+/g, "").includes("PRYXHiggsfieldReferenceCollector")) return;
+    if (!nodeTypeName(node).replace(/\s+/g, "").includes("PRYXComfyUIHiggsfieldReferenceCollector")) return;
     // A browser reload may load this script while Python still runs the old schema.
     if (!node.widgets?.some((widget) => widget.name === "names")) return;
     if (!node.__pryxCollectorAttached) {
@@ -740,7 +740,7 @@ function attachReferenceCollector(node) {
 }
 
 function attachReferencePreview(node) {
-    if (!nodeTypeName(node).replace(/\s+/g, "").includes("PRYXHiggsfieldReferencePreview") || node.__pryxPreviewAttached) return;
+    if (!nodeTypeName(node).replace(/\s+/g, "").includes("PRYXComfyUIHiggsfieldReferencePreview") || node.__pryxPreviewAttached) return;
     node.__pryxPreviewAttached = true;
     const element = document.createElement("div");
     element.style.cssText = "white-space:pre-wrap;padding:10px;overflow:auto;font:12px/1.5 sans-serif;";
@@ -758,25 +758,25 @@ function attachReferencePreview(node) {
 }
 
 app.registerExtension({
-    name: "PRYX.Higgsfield",
+    name: "PRYX.ComfyUI.Higgsfield",
     settings: [
         {
-            id: "PRYX.Higgsfield.Credentials",
+            id: "PRYX.ComfyUI.Higgsfield.Credentials",
             name: "Higgsfield API credentials",
-            category: ["PRYX Higgsfield", "Credentials"],
+            category: ["PRYX ComfyUI Higgsfield", "Credentials"],
             type: createCredentialSetting,
             defaultValue: false,
         },
         {
-            id: "PRYX.Higgsfield.CatalogRefresh",
+            id: "PRYX.ComfyUI.Higgsfield.CatalogRefresh",
             name: "Model catalog",
-            category: ["PRYX Higgsfield", "Catalog"],
+            category: ["PRYX ComfyUI Higgsfield", "Catalog"],
             type: createCatalogRefreshSetting,
             defaultValue: false,
         },
     ],
     setup() {
-        api?.addEventListener?.("pryx_higgsfield.progress", handleProgress);
+        api?.addEventListener?.("pryx_comfyui_higgsfield.progress", handleProgress);
         // Trigger one read so settings/catalog errors are visible in the
         // browser console without placing credentials in the page.
         requestJson(CATALOG_ROUTE).catch(() => {});
@@ -784,7 +784,7 @@ app.registerExtension({
     nodeCreated(node) {
         attachReferenceCollector(node);
         attachReferencePreview(node);
-        if (modelCapabilitiesForNode(node) || nodeTypeName(node).replace(/\s+/g, "").includes("PRYXHiggsfieldModelCatalog")) {
+        if (modelCapabilitiesForNode(node) || nodeTypeName(node).replace(/\s+/g, "").includes("PRYXComfyUIHiggsfieldModelCatalog")) {
             updateCatalogWidgets(node);
             updateSoulStyleWidget(node);
         }
@@ -792,9 +792,9 @@ app.registerExtension({
     loadedGraphNode(node) {
         attachReferenceCollector(node);
         attachReferencePreview(node);
-        if (!modelCapabilitiesForNode(node) && !nodeTypeName(node).replace(/\s+/g, "").includes("PRYXHiggsfieldModelCatalog")) return;
+        if (!modelCapabilitiesForNode(node) && !nodeTypeName(node).replace(/\s+/g, "").includes("PRYXComfyUIHiggsfieldModelCatalog")) return;
         node.__pryxLoadedGraphNode = true;
-        node.__pryxLegacyWorkflow = node.properties?.pryx_higgsfield_ui_schema !== NODE_UI_SCHEMA_VERSION;
+        node.__pryxLegacyWorkflow = node.properties?.pryx_comfyui_higgsfield_ui_schema !== NODE_UI_SCHEMA_VERSION;
         updateCatalogWidgets(node);
         updateSoulStyleWidget(node);
     },

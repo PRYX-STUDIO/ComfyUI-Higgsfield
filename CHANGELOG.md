@@ -2,7 +2,7 @@
 
 ## 1.0.0 - Unreleased
 
-- Added the PRYX Higgsfield ComfyUI loader and Registry metadata.
+- Added the PRYX ComfyUI Higgsfield loader and Registry metadata.
 - Added a validated bundled catalog for the documented image and video endpoints.
 - Added local credential storage, environment-variable priority, and settings routes.
 - Added estimate-first generation with a hard USD limit.

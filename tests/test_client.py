@@ -2,9 +2,9 @@ import json
 
 import httpx
 
-from pryx_higgsfield.catalog import load_bundled_catalog
-from pryx_higgsfield.client import HiggsfieldClient
-from pryx_higgsfield.credentials import Credentials
+from pryx_comfyui_higgsfield.catalog import load_bundled_catalog
+from pryx_comfyui_higgsfield.client import HiggsfieldClient
+from pryx_comfyui_higgsfield.credentials import Credentials
 
 
 def test_estimate_submit_status_and_upload_do_not_send_credentials_to_storage():
