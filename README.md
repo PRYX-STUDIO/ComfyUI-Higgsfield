@@ -399,12 +399,14 @@ host allowlist. A background refresh may run at most once per 24 hours. Remote
 data is accepted only after schema, ID, endpoint, and documentation validation;
 if refresh fails, the last valid catalog remains active.
 
+Model availability is capability-specific. A model can be available for one
+Higgsfield task and still be absent from another node when the provider does
+not document a compatible endpoint for that capability. The dropdowns therefore
+filter by capability: an item missing from **Reference to Video** is not a
+statement that the model is unavailable from Higgsfield in general.
+
 To refresh manually, open **ComfyUI Settings → PRYX Higgsfield → Model
 catalog**, click **Refresh catalog**, restart ComfyUI, and reload the browser.
-
-The catalog currently does not contain MiniMax H3. A model appearing in another
-local ComfyUI node does not make it a Higgsfield API model; it is added here
-only after Higgsfield publishes a documented endpoint and request schema.
 
 ## Outputs
 
