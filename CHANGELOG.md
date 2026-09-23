@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+- Restored model-specific controls and direct connected media inputs across the
+  generator nodes.
+- Clarified reference handling and model availability in the documentation.
+
 ## 1.0.0 - Unreleased
 
 - Added the PRYX ComfyUI Higgsfield loader and Registry metadata.
