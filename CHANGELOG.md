@@ -9,6 +9,9 @@
 - Added presigned media uploads, streaming downloads, local output persistence,
   status polling, cancel handling, and progress events.
 - Added image, video, reference, catalog, and advanced request nodes.
+- Added Genjutsu Motion Transfer and Genjutsu Object Swap as separate Video Edit
+  model choices, and kept model-specific numeric controls interactive when
+  their widget type changes.
 - Added mock tests and a documentation-driven catalog sync tool.
 - Expanded the public README with installation, credentials, node guides,
   reference ordering, estimate safety, outputs, catalog coverage, and

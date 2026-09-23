@@ -242,7 +242,9 @@ for several inputs.
 ### PRYX ComfyUI Higgsfield Video Edit
 
 Edit an existing video with a prompt and the controls supported by the active
-catalog model. Connect the source video to `video`; optional model-supported
+catalog model. The model dropdown includes Genjutsu Motion Transfer and
+Genjutsu Object Swap as separate modes, alongside the other documented video
+edit models. Connect the source video to `video`; optional model-supported
 references can be supplied through `references`.
 
 **Outputs:** `video`, `local_file`, `remote_url`, `request_id`, `credits`, `usd`,
@@ -404,8 +406,8 @@ loaded by that ComfyUI installation.
 | Text to video (19) | MiniMax H3, Seedance, Kling, Wan, PixVerse |
 | Image to video (22) | MiniMax H3, Seedance, Kling, Wan, PixVerse |
 | Reference to video (15) | MiniMax H3, Seedance, Kling Omni, Wan |
-| Video edit (5) | Seedance, Kling Omni |
-| Motion/control (4) | Kling motion-control models, in Video Edit |
+| Video edit (5) | Genjutsu Motion Transfer, Genjutsu Object Swap, Seedance, Kling |
+| Motion/control (4) | Kling motion-control models, also in Video Edit |
 | Video extend (1) | Seedance |
 
 Each public platform entry includes the API reference's JSON input schema.
@@ -495,7 +497,7 @@ Run the local unit and mock integration tests:
 
 ```powershell
 python -m pytest -q
-node --test tests/reference_preview.test.cjs
+node --test
 ```
 
 Validate the Python import path:
