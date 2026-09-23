@@ -3,6 +3,7 @@
 .pytest_cache/
 __pycache__/
 *.pyc
+node.zip
 tests/
 tools/
 *.env

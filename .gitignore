@@ -19,6 +19,7 @@ venv/
 build/
 dist/
 *.egg-info/
+/node.zip
 
 # Editors and operating-system state
 .idea/
