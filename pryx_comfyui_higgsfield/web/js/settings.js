@@ -655,6 +655,24 @@ function updateModelInfo(node, model) {
     element.textContent = lines.join("\n");
 }
 
+function fitNodeToContent(node) {
+    const size = node.computeSize?.();
+    if (!size) return;
+    node.setSize?.([Math.max(node.size?.[0] || 0, 360), size[1]]);
+}
+
+function scheduleNodeFitAfterLoad(node) {
+    const fit = () => {
+        fitNodeToContent(node);
+        node.setDirtyCanvas?.(true, true);
+    };
+    if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => requestAnimationFrame(fit));
+    } else {
+        setTimeout(fit, 0);
+    }
+}
+
 function updateModelCatalogNode(node, models) {
     if (!nodeTypeName(node).includes("ModelCatalog")) return false;
     const providerWidget = node.widgets?.find((item) => item.name === "provider");
@@ -779,8 +797,12 @@ async function updateCatalogWidgets(node) {
         node.properties.pryx_comfyui_higgsfield_ui_schema = NODE_UI_SCHEMA_VERSION;
         node.__pryxLegacyWorkflow = false;
         if (!node.__pryxInfoSized) {
-            const size = node.computeSize?.();
-            if (size) node.setSize?.([Math.max(node.size?.[0] || 0, 360), Math.max(node.size?.[1] || 0, size[1])]);
+            if (node.__pryxPendingInitialFit) {
+                node.__pryxPendingInitialFit = false;
+                scheduleNodeFitAfterLoad(node);
+            } else {
+                fitNodeToContent(node);
+            }
             node.__pryxInfoSized = true;
         }
         node.setDirtyCanvas?.(true, true);
@@ -919,6 +941,10 @@ app.registerExtension({
         attachReferencePreview(node);
         if (!modelCapabilitiesForNode(node) && !nodeTypeName(node).replace(/\s+/g, "").includes("PRYXComfyUIHiggsfieldModelCatalog")) return;
         node.__pryxLoadedGraphNode = true;
+        // nodeCreated may have measured widgets before saved workflow values were restored.
+        // Recompute after graph restoration and DOM-widget layout so stale height is discarded.
+        node.__pryxInfoSized = false;
+        node.__pryxPendingInitialFit = true;
         node.__pryxLegacyWorkflow = node.properties?.pryx_comfyui_higgsfield_ui_schema !== NODE_UI_SCHEMA_VERSION;
         updateCatalogWidgets(node);
         updateSoulStyleWidget(node);

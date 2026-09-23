@@ -7,8 +7,11 @@ ComfyUI lifecycle rules required by the node pack.
 
 from __future__ import annotations
 
+import math
 import os
+import re
 import time
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Callable, Mapping
 from urllib.parse import urlsplit
@@ -24,6 +27,67 @@ DEFAULT_TIMEOUT = 1800.0
 DEFAULT_BASE_URL = "https://api.higgsfield.ai"
 USER_AGENT = "pryx-comfyui-higgsfield/1.0"
 MAX_DOWNLOAD_BYTES = 2 * 1024 * 1024 * 1024
+
+_DESCRIPTION_RATE = re.compile(
+    r"\b(?P<resolution>\d+(?:\.\d+)?\s*[pk])\s+output costs?\s+\$(?P<rate>\d+(?:\.\d+)?)"
+    r"\s+per generated second\b",
+    re.IGNORECASE,
+)
+_DESCRIPTION_IMAGE_SURCHARGE = re.compile(
+    r"\bfirst\s+(?P<included>\d+|one|two|three|four|five|six|seven|eight|nine|ten)"
+    r"\s+reference images are included;\s*"
+    r"each additional reference image costs\s+\$(?P<fee>\d+(?:\.\d+)?)\b",
+    re.IGNORECASE,
+)
+_NUMBER_WORDS = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+}
+
+
+def _description_price(payload: Mapping[str, Any], arguments: Mapping[str, Any]) -> float | None:
+    """Calculate only an explicitly described per-second price for its matching resolution."""
+    if str(payload.get("type", "")).lower() != "description":
+        return None
+    description = payload.get("pricing_description")
+    if not isinstance(description, str):
+        return None
+    rate_match = _DESCRIPTION_RATE.search(description)
+    if not rate_match:
+        return None
+
+    requested_resolution = re.sub(r"\s+", "", str(arguments.get("resolution", ""))).casefold()
+    described_resolution = re.sub(r"\s+", "", rate_match.group("resolution")).casefold()
+    if not requested_resolution or requested_resolution != described_resolution:
+        return None
+
+    duration = arguments.get("duration")
+    if isinstance(duration, bool) or not isinstance(duration, (int, float)) or not math.isfinite(duration) or duration <= 0:
+        return None
+    try:
+        total = Decimal(rate_match.group("rate")) * Decimal(str(duration))
+        image_surcharge = _DESCRIPTION_IMAGE_SURCHARGE.search(description)
+        if image_surcharge:
+            image_urls = arguments.get("image_urls", arguments.get("image_url"))
+            if isinstance(image_urls, (list, tuple)):
+                image_count = len(image_urls)
+            else:
+                image_count = int(image_urls is not None)
+            included_text = image_surcharge.group("included").casefold()
+            included = int(included_text) if included_text.isdigit() else _NUMBER_WORDS[included_text]
+            extra_images = max(0, image_count - included)
+            total += Decimal(image_surcharge.group("fee")) * extra_images
+        return float(total.quantize(Decimal("0.01")))
+    except (InvalidOperation, ValueError):
+        return None
 
 
 class HiggsfieldClient:
@@ -76,7 +140,19 @@ class HiggsfieldClient:
             f"/estimate/{model.endpoint.lstrip('/')}",
             json=dict(arguments),
         )
-        return Estimate.from_payload(response.json())
+        payload = response.json()
+        estimate = Estimate.from_payload(payload)
+        if estimate.usd is not None or not isinstance(payload, Mapping):
+            return estimate
+        described_usd = _description_price(payload, arguments)
+        if described_usd is None:
+            return estimate
+        return Estimate(
+            credits=estimate.credits,
+            usd=described_usd,
+            raw=dict(payload),
+            usd_source="pricing_description",
+        )
 
     def get_json(self, path: str, *, attempts: int = 4) -> Mapping[str, Any]:
         response = self._request_with_retry("GET", path, attempts=attempts)

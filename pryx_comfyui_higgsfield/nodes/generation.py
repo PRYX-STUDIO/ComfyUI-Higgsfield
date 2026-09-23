@@ -358,13 +358,17 @@ class CatalogGeneratorNode:
         return True
 
 
+def _estimate_socket_value(value):
+    return float(value) if value is not None else -1.0
+
+
 def _image_result(outcome):
     return (
         image_output(outcome),
         json.dumps(outcome.urls, ensure_ascii=False),
         outcome.request_id,
-        float(outcome.estimate.credits or 0.0),
-        float(outcome.estimate.usd or 0.0),
+        _estimate_socket_value(outcome.estimate.credits),
+        _estimate_socket_value(outcome.estimate.usd),
         outcome.status_json(),
     )
 
@@ -376,8 +380,8 @@ def _video_result(outcome):
         local_file,
         json.dumps(outcome.urls, ensure_ascii=False),
         outcome.request_id,
-        float(outcome.estimate.credits or 0.0),
-        float(outcome.estimate.usd or 0.0),
+        _estimate_socket_value(outcome.estimate.credits),
+        _estimate_socket_value(outcome.estimate.usd),
         outcome.status_json(),
     )
 
@@ -387,7 +391,7 @@ class ImageGenerateEditNode(CatalogGeneratorNode):
     CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("IMAGE", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
-    RETURN_NAMES = ("images", "image_urls", "request_id", "credits", "usd", "status")
+    RETURN_NAMES = ("images", "image_urls", "request_id", "credits (-1 unavailable)", "usd (-1 unavailable)", "status")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -430,7 +434,7 @@ class TextToVideoNode(CatalogGeneratorNode):
     CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
-    RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits", "usd", "status")
+    RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits (-1 unavailable)", "usd (-1 unavailable)", "status")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -458,7 +462,7 @@ class ImageToVideoNode(CatalogGeneratorNode):
     CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
-    RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits", "usd", "status")
+    RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits (-1 unavailable)", "usd (-1 unavailable)", "status")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -519,7 +523,7 @@ class ReferenceToVideoNode(CatalogGeneratorNode):
     CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
-    RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits", "usd", "status")
+    RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits (-1 unavailable)", "usd (-1 unavailable)", "status")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -563,7 +567,7 @@ class VideoEditNode(CatalogGeneratorNode):
     CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
-    RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits", "usd", "status")
+    RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits (-1 unavailable)", "usd (-1 unavailable)", "status")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -600,7 +604,7 @@ class VideoExtendNode(CatalogGeneratorNode):
     CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
-    RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits", "usd", "status")
+    RETURN_NAMES = ("video", "local_file", "remote_url", "request_id", "credits (-1 unavailable)", "usd (-1 unavailable)", "status")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -635,7 +639,7 @@ class AdvancedRequestNode:
     CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("IMAGE", "VIDEO", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
-    RETURN_NAMES = ("image", "video", "remote_urls", "request_id", "credits", "usd", "status")
+    RETURN_NAMES = ("image", "video", "remote_urls", "request_id", "credits (-1 unavailable)", "usd (-1 unavailable)", "status")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -687,7 +691,7 @@ class AdvancedRequestNode:
             video,
             json.dumps(outcome.urls, ensure_ascii=False),
             outcome.request_id,
-            float(outcome.estimate.credits or 0.0),
-            float(outcome.estimate.usd or 0.0),
+            _estimate_socket_value(outcome.estimate.credits),
+            _estimate_socket_value(outcome.estimate.usd),
             outcome.status_json(),
         )

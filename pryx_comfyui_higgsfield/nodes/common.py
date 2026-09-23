@@ -49,6 +49,12 @@ class GenerationOutcome:
             "elapsed_seconds": round(self.elapsed_seconds, 3),
             "remote_urls": self.urls,
             "reference_manifest": self.reference_manifest,
+            "estimate": {
+                "credits": self.estimate.credits,
+                "usd": self.estimate.usd,
+                "usd_source": self.estimate.usd_source,
+                "pricing_description": self.estimate.raw.get("pricing_description"),
+            },
         }
         if self.snapshot:
             payload["provider_status"] = dict(self.snapshot.payload)

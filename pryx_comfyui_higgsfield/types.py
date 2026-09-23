@@ -224,6 +224,7 @@ class Estimate:
     credits: float | None
     usd: float | None
     raw: Mapping[str, Any] = field(default_factory=dict)
+    usd_source: str | None = None
 
     @classmethod
     def from_payload(cls, payload: Mapping[str, Any]) -> "Estimate":
@@ -235,10 +236,13 @@ class Estimate:
             except (TypeError, ValueError):
                 return None
 
+        credits = number(payload.get("credits"))
+        usd = number(payload.get("usd"))
         return cls(
-            credits=number(payload.get("credits")),
-            usd=number(payload.get("usd")),
+            credits=credits,
+            usd=usd,
             raw=dict(payload),
+            usd_source="provider" if usd is not None else None,
         )
 
 

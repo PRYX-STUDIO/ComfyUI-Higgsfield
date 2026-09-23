@@ -9,7 +9,9 @@ const models = JSON.parse(fs.readFileSync(path.join(__dirname, '../pryx_comfyui_
 
 function fixture() {
     const elements = [];
+    const animationFrames = [];
     const context = { nodeTypeName: (node) => node.type, queueMicrotask,
+        requestAnimationFrame(callback) { animationFrames.push(callback); },
         setWidgetVisibility(widget, visible) { widget.hidden = !visible; },
         setWidgetValue(node, widget, value) {
             widget.value = value;
@@ -28,13 +30,34 @@ function fixture() {
     vm.runInContext(source.slice(source.indexOf('function attachReferencePreview'), source.indexOf('app.registerExtension')), context);
     vm.runInContext(source.slice(source.indexOf('const COLLECTOR_SLOT_LIMITS'), source.indexOf('function attachReferencePreview')), context);
     const node = { type: 'PRYXComfyUIHiggsfieldReferencePreview', widgets: [], properties: {},
+        size: [500, 720],
         addDOMWidget(name, type, element, options) {
             const widget = { name, element, options };
             this.widgets.push(widget);
             return widget;
-        }, computeSize() { return [340, 240]; }, setSize() {}, setDirtyCanvas() {} };
-    return { context, node, elements };
+        }, computeSize() { return [340, 240]; }, setSize(size) { this.size = size; }, setDirtyCanvas() {} };
+    return { context, node, elements, animationFrames };
 }
+
+test('initial node fitting shrinks a stale saved height to its current collapsed content', () => {
+    const { context, node } = fixture();
+    context.fitNodeToContent(node);
+    assert.equal(node.size[0], 500);
+    assert.equal(node.size[1], 240);
+});
+
+test('loaded nodes are fitted after graph restoration and DOM layout settle', () => {
+    const { context, node, animationFrames } = fixture();
+    context.scheduleNodeFitAfterLoad(node);
+    assert.equal(node.size[1], 720);
+    assert.equal(animationFrames.length, 1);
+    animationFrames.shift()();
+    assert.equal(node.size[1], 720);
+    assert.equal(animationFrames.length, 1);
+    animationFrames.shift()();
+    assert.equal(node.size[0], 500);
+    assert.equal(node.size[1], 240);
+});
 
 test('model info distinguishes confirmed Wan tokens from unconfirmed Seedance syntax', () => {
     const { context, node } = fixture();

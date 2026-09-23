@@ -3,6 +3,7 @@ import pytest
 from pryx_comfyui_higgsfield.catalog import load_bundled_catalog
 from pryx_comfyui_higgsfield.errors import ValidationError
 from pryx_comfyui_higgsfield.nodes.common import execute_generation
+from pryx_comfyui_higgsfield.nodes.references import Reference
 from pryx_comfyui_higgsfield.types import Estimate
 
 
@@ -52,4 +53,42 @@ def test_estimate_only_returns_without_request_id():
     )
     assert outcome.request_id == ""
     assert outcome.status == "estimated"
+    assert client.submit_calls == 0
+
+
+def test_description_based_usd_passes_max_usd_and_status_reports_unknown_credits():
+    class DescriptionEstimateClient(EstimateOnlyClient):
+        def estimate(self, model, arguments):
+            self.estimate_calls += 1
+            return Estimate(
+                credits=None,
+                usd=0.65,
+                raw={"type": "description", "pricing_description": "2K costs $0.13 per generated second."},
+                usd_source="pricing_description",
+            )
+
+    client = DescriptionEstimateClient()
+    outcome = execute_generation(
+        "minimax-h3-reference-to-video",
+        {"prompt": "synthetic reference test", "duration": 5, "resolution": "2K"},
+        mode="estimate_only",
+        max_usd=1.0,
+        auto_save=False,
+        timeout=60,
+        references=[Reference("image", url="https://cdn.example/synthetic.png")],
+        client=client,
+        catalog=load_bundled_catalog(),
+    )
+
+    import json
+
+    status = json.loads(outcome.status_json())
+    assert outcome.status == "estimated"
+    assert status["estimate"] == {
+        "credits": None,
+        "pricing_description": "2K costs $0.13 per generated second.",
+        "usd": 0.65,
+        "usd_source": "pricing_description",
+    }
+    assert client.estimate_calls == 1
     assert client.submit_calls == 0

@@ -59,6 +59,50 @@ def test_estimate_submit_status_and_upload_do_not_send_credentials_to_storage():
     assert "Authorization" not in upload_requests[0].headers
 
 
+def test_description_estimate_uses_matching_resolution_duration_and_reference_surcharge():
+    model = load_bundled_catalog().get("minimax-h3-reference-to-video")
+    payload = {
+        "type": "description",
+        "pricing_description": (
+            "2K output costs $0.13 per generated second. The first five reference images are included; "
+            "each additional reference image costs $0.08. Rates shown are before any applicable customer discount."
+        ),
+    }
+    client = HiggsfieldClient(
+        Credentials("id", "secret", "test"),
+        http_client=httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200, json=payload))),
+        upload_client=httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200))),
+    )
+
+    estimate = client.estimate(
+        model,
+        {"duration": 5, "resolution": "2K", "image_urls": [f"https://cdn.example/{index}.png" for index in range(7)]},
+    )
+
+    assert estimate.credits is None
+    assert estimate.usd == 0.81
+    assert estimate.usd_source == "pricing_description"
+    assert estimate.raw == payload
+
+
+def test_description_estimate_is_not_guessed_for_a_different_resolution():
+    model = load_bundled_catalog().get("minimax-h3-reference-to-video")
+    payload = {
+        "type": "description",
+        "pricing_description": "2K output costs $0.13 per generated second.",
+    }
+    client = HiggsfieldClient(
+        Credentials("id", "secret", "test"),
+        http_client=httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200, json=payload))),
+        upload_client=httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200))),
+    )
+
+    estimate = client.estimate(model, {"duration": 5, "resolution": "1080p"})
+
+    assert estimate.usd is None
+    assert estimate.usd_source is None
+
+
 def test_request_payload_is_json():
     seen = {}
 
