@@ -216,7 +216,9 @@ images. The visible parameter widgets change with the selected model.
 
 Generate a video from a text prompt. The node exposes the controls supported by
 the selected text-to-video model, such as resolution, aspect ratio, duration,
-audio, sound, multi-shot settings, or a seed.
+audio, sound, multi-shot settings, or a seed. If the selected model accepts an
+audio reference, the node also shows direct `AUDIO` and ordered `references`
+inputs.
 
 **Outputs:** `video`, `local_file`, `remote_url`, `request_id`, `credits`, `usd`,
 `status`
@@ -224,9 +226,10 @@ audio, sound, multi-shot settings, or a seed.
 ### PRYX ComfyUI Higgsfield Image to Video
 
 Animate a starting image. Connect one native `IMAGE` to `image`; models that
-support an ending frame expose the optional `end_image` input. Some models also
-accept additional references through `references`. The node only lists
-catalog models documented for the Higgsfield image-to-video capability.
+support an ending frame expose the optional `end_image` input. Models that
+accept audio or additional references show the matching direct socket and the
+ordered `references` input. The node only lists catalog models documented for
+the Higgsfield image-to-video capability.
 
 **Outputs:** `video`, `local_file`, `remote_url`, `request_id`, `credits`, `usd`,
 `status`
@@ -247,7 +250,8 @@ Edit an existing video with a prompt and the controls supported by the active
 catalog model. The model dropdown includes Genjutsu Motion Transfer and
 Genjutsu Object Swap as separate modes, alongside the other documented video
 edit models. Connect the source video to `video`; optional model-supported
-references can be supplied through `references`.
+image or audio inputs appear when supported, and additional references can be
+supplied through `references`.
 
 **Outputs:** `video`, `local_file`, `remote_url`, `request_id`, `credits`, `usd`,
 `status`
@@ -255,8 +259,9 @@ references can be supplied through `references`.
 ### PRYX ComfyUI Higgsfield Video Extend
 
 Extend an existing video. Connect the source clip to `video` and set the
-model-supported duration and output options. The selected model determines the
-valid duration range.
+model-supported duration and output options. Additional direct image/audio
+inputs and the ordered `references` input appear when the selected model accepts
+them.
 
 **Outputs:** `video`, `local_file`, `remote_url`, `request_id`, `credits`, `usd`,
 `status`
@@ -276,6 +281,8 @@ model-specific widgets and validate their values individually.
 - `model` — catalog model ID
 - `arguments_json` — JSON object containing the model's request fields
 - `request_mode`, `max_usd`, `auto_save`, `timeout` — common safety controls
+- `image`, `video`, `audio`, `end_image`, `references` — optional native media
+  inputs; the node shows only inputs supported by the selected model
 
 **Outputs:** `image`, `video`, `remote_urls`, `request_id`, `credits`, `usd`,
 `status`
@@ -289,6 +296,7 @@ Use a direct input when the role is unambiguous:
 - `image` is the source/start image for image-to-video or an image-edit node
 - `end_image` is the explicit ending frame where the selected model supports it
 - `video` is the source video for edit/extend nodes
+- `audio` is an audio reference for models that accept one
 - `references` is an ordered collection of additional media
 
 The frontend hides inputs that the selected model cannot use. The backend

@@ -19,7 +19,37 @@ function fixture() {
         };
     }
 
-    const context = { ComfyWidgets: factories, app: {} };
+    const context = {
+        ComfyWidgets: factories,
+        app: {},
+        ALWAYS_VISIBLE_WIDGETS: new Set(['model', 'request_mode', 'max_usd', 'auto_save', 'timeout', 'model_info', 'arguments_json']),
+        MEDIA_PARAMETER_NAMES: new Set([
+            'image_url', 'end_image_url', 'last_image_url', 'first_frame_url', 'last_frame_url',
+            'image_urls', 'video_url', 'video_urls', 'audio_url', 'audio_urls', 'file_url', 'link_url',
+        ]),
+        setWidgetVisibility(widget, visible) { widget.hidden = !visible; },
+        setWidgetValue(node, widget, value) {
+            widget.value = value;
+            const index = node.widgets?.indexOf(widget) ?? -1;
+            if (index >= 0 && Array.isArray(node.widgets_values)) node.widgets_values[index] = value;
+        },
+        replaceWidgetWithNativeType(node, widget, factoryType, inputData) {
+            const index = node.widgets.indexOf(widget);
+            if (index < 0) return widget;
+            const created = factories[factoryType](node, widget.name, inputData, context.app);
+            const replacement = created.widget || created;
+            widget.onRemove?.();
+            node.widgets.splice(index, 1);
+            const appendedIndex = node.widgets.indexOf(replacement);
+            node.widgets.splice(appendedIndex, 1);
+            node.widgets.splice(index, 0, replacement);
+            replacement.label = widget.label;
+            replacement.hidden = widget.hidden;
+            replacement.options = { ...(replacement.options || {}), ...(widget.options || {}) };
+            if (Array.isArray(node.widgets_values)) node.widgets_values[index] = widget.value;
+            return replacement;
+        },
+    };
     vm.createContext(context);
     const start = source.indexOf('const PARAMETER_HINTS =');
     const end = source.indexOf('function modelTooltip', start);
@@ -86,4 +116,41 @@ test('duration outside a newly selected model range resets to its supported defa
     assert.equal(widget.type, 'number');
     assert.equal(widget.value, 5);
     assert.equal(node.widgets_values[1], 5);
+});
+
+test('missing catalog parameters are added as native widgets below the other controls', () => {
+    const context = fixture();
+    const model = { name: 'model', type: 'combo', value: 'minimax-h3-reference-to-video', options: {} };
+    const prompt = { name: 'prompt', type: 'text', value: '' };
+    const info = { name: 'model_info', type: 'dom', value: '', options: { serialize: false } };
+    const node = { widgets: [model, prompt, info], widgets_values: [model.value, ''] };
+    const parameters = new Map([['duration', {
+        name: 'duration', type: 'integer', default: 5, minimum: 5, maximum: 15,
+    }]]);
+
+    assert.equal(context.ensureCatalogParameterWidgets(node, parameters), true);
+    const duration = node.widgets.find(widget => widget.name === 'duration');
+    assert.equal(duration.type, 'number');
+    assert.equal(duration.value, 5);
+    assert.equal(duration.options.min, 5);
+    assert.equal(duration.options.max, 15);
+    assert.equal(duration.options.step, 1);
+    assert.equal(node.widgets.at(-1), info);
+    assert.deepEqual(node.widgets_values, [model.value, '', 5]);
+    assert.equal(context.ensureCatalogParameterWidgets(node, parameters), false);
+    assert.equal(node.widgets.filter(widget => widget.name === 'duration').length, 1);
+});
+
+test('model-specific JSON parameters use multiline text widgets', () => {
+    const context = fixture();
+    const oldValue = '[{"prompt":"Keep me"}]';
+    const oldWidget = { name: 'shots_json', type: 'text', value: oldValue, options: {} };
+    const node = makeNode(oldWidget);
+    const parameter = { name: 'shots', type: 'array', default: [], description: 'Shot list' };
+
+    const widget = context.setWidgetFromParameter(node, oldWidget, parameter);
+
+    assert.equal(widget.type, 'text');
+    assert.equal(widget.options.multiline, true);
+    assert.equal(widget.value, oldValue);
 });

@@ -3,11 +3,21 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
-from pryx_comfyui_higgsfield.nodes import NODE_CLASS_MAPPINGS
+from pryx_comfyui_higgsfield.catalog import runtime_catalog
+from pryx_comfyui_higgsfield.nodes import NODE_CLASS_MAPPINGS, generation
 from pryx_comfyui_higgsfield.nodes.catalog_node import ModelCatalogNode
-from pryx_comfyui_higgsfield.nodes.generation import ReferenceToVideoNode, TextToVideoNode, VideoEditNode
+from pryx_comfyui_higgsfield.nodes.generation import (
+    AdvancedRequestNode,
+    ImageGenerateEditNode,
+    ImageToVideoNode,
+    ReferenceToVideoNode,
+    TextToVideoNode,
+    VideoEditNode,
+    VideoExtendNode,
+)
 from pryx_comfyui_higgsfield.nodes.references import Reference, ReferenceCollectorNode, ReferenceCollection
 from pryx_comfyui_higgsfield.media import _load_native_video
+from pryx_comfyui_higgsfield.types import Capability
 
 
 def test_all_public_nodes_are_registered():
@@ -44,6 +54,91 @@ def test_reference_to_video_exposes_catalog_model_choices():
     assert model_input[0] == "STRING"
     assert "minimax-h3-reference-to-video" in model_input[1]["choices"]
     assert "seedance-2-5-reference-to-video" in model_input[1]["choices"]
+
+
+def test_every_active_model_parameter_and_media_kind_has_a_node_input():
+    nodes = (
+        (ImageGenerateEditNode, {Capability.IMAGE_GENERATE, Capability.IMAGE_EDIT}),
+        (TextToVideoNode, {Capability.TEXT_TO_VIDEO}),
+        (ImageToVideoNode, {Capability.IMAGE_TO_VIDEO}),
+        (ReferenceToVideoNode, {Capability.REFERENCE_TO_VIDEO}),
+        (VideoEditNode, {Capability.VIDEO_EDIT, Capability.VIDEO_MOTION}),
+        (VideoExtendNode, {Capability.VIDEO_EXTEND}),
+        (AdvancedRequestNode, set(Capability)),
+    )
+    media_parameters = {
+        "image_url", "end_image_url", "last_image_url", "first_frame_url", "last_frame_url",
+        "image_urls", "video_url", "video_urls", "audio_url", "audio_urls", "file_url", "link_url",
+    }
+    end_frame_parameters = {"end_image_url", "last_image_url", "last_frame_url"}
+    catalog = runtime_catalog()
+
+    for node_class, capabilities in nodes:
+        input_types = node_class.INPUT_TYPES()
+        optional = input_types.get("optional", {})
+        available = set(input_types.get("required", {})) | set(optional)
+        models = [
+            model for model in catalog.models
+            if model.status.value == "active" and model.capability in capabilities
+        ]
+        assert models, node_class.__name__
+
+        for model in models:
+            if node_class is not AdvancedRequestNode:
+                expected = {
+                    "shots_json" if parameter.name == "shots" else parameter.name
+                    for parameter in model.parameters
+                    if parameter.name != "prompt" and parameter.name not in media_parameters
+                }
+                assert expected <= available, f"{node_class.__name__} / {model.id}: {expected - available}"
+
+            media = set(model.input_media)
+            for kind in ("image", "video", "audio"):
+                if kind in media:
+                    assert kind in optional, f"{node_class.__name__} / {model.id} lacks direct {kind} input"
+                    assert optional[kind][0] == kind.upper()
+            if media:
+                assert "references" in optional, f"{node_class.__name__} / {model.id} lacks a collector input"
+            if end_frame_parameters.intersection(model.parameter_map):
+                assert "end_image" in optional, f"{node_class.__name__} / {model.id} lacks end_image input"
+
+
+def test_reference_to_video_duration_is_declared_for_every_active_model():
+    input_types = ReferenceToVideoNode.INPUT_TYPES()
+    available = set(input_types.get("required", {})) | set(input_types.get("optional", {}))
+    models = [
+        model for model in runtime_catalog().models
+        if model.status.value == "active" and model.capability is Capability.REFERENCE_TO_VIDEO
+    ]
+
+    assert models
+    assert "duration" in available
+    assert all("duration" in model.parameter_map for model in models)
+
+
+def test_text_to_video_direct_audio_is_submitted_as_a_model_reference(monkeypatch):
+    audio = object()
+    captured = {}
+    outcome = object()
+
+    def fake_execute(model_id, arguments, **kwargs):
+        captured.update(model_id=model_id, arguments=arguments, **kwargs)
+        return outcome
+
+    monkeypatch.setattr(generation, "execute_generation", fake_execute)
+    monkeypatch.setattr(generation, "_video_result", lambda value: value)
+    result = TextToVideoNode().generate(
+        "wan-v2-6-text-to-video",
+        prompt="Synthetic audio-conditioned video test",
+        audio=audio,
+    )
+
+    assert result is outcome
+    assert captured["model_id"] == "wan-v2-6-text-to-video"
+    assert [reference.kind for reference in captured["references"]] == ["audio"]
+    assert captured["references"][0].value is audio
+    assert "audio" not in captured["arguments"]
+    assert captured["arguments"]["prompt"] == "Synthetic audio-conditioned video test"
 
 
 def test_genjutsu_modes_are_selectable_in_video_edit_and_usd_cap_defaults_to_zero():

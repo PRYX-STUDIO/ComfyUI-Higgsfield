@@ -256,6 +256,41 @@ def _catalog_parameter_inputs(capability: Capability | tuple[Capability, ...]) -
     return {_widget_name(spec): _parameter_input(spec) for spec in specs.values()}
 
 
+def _catalog_media_inputs(
+    capability: Capability | tuple[Capability, ...] | None,
+) -> dict[str, tuple[Any, dict[str, Any]]]:
+    """Expose direct media sockets for media types accepted by this node's models."""
+
+    models = [_CATALOG.get(model_id) for model_id in _models(capability)]
+    supported = {kind for model in models for kind in model.input_media}
+    inputs: dict[str, tuple[Any, dict[str, Any]]] = {}
+    for name, kind in (("image", "image"), ("video", "video"), ("audio", "audio")):
+        if kind in supported:
+            inputs[name] = (
+                kind.upper(),
+                {
+                    "tooltip": (
+                        f"Direct {kind} reference. The selected model defines whether it is required "
+                        "and the accepted limits."
+                    )
+                },
+            )
+
+    if supported:
+        inputs["references"] = (
+            ReferenceCollection.TYPE,
+            {"tooltip": "Ordered media references. The selected model defines accepted media types and limits."},
+        )
+
+    end_frame_fields = {"end_image_url", "last_image_url", "last_frame_url"}
+    if any(end_frame_fields.intersection(model.parameter_map) for model in models):
+        inputs["end_image"] = (
+            "IMAGE",
+            {"tooltip": "Optional final frame. Exactly one image; available only for models that support an end frame."},
+        )
+    return inputs
+
+
 def _prompt_input() -> tuple[str, dict[str, Any]]:
     return (
         "STRING",
@@ -267,13 +302,14 @@ def _prompt_input() -> tuple[str, dict[str, Any]]:
 
 
 def _generator_inputs(
-    capability: Capability,
+    capability: Capability | tuple[Capability, ...],
     *,
     optional: dict[str, tuple[Any, dict[str, Any]]] | None = None,
 ):
     values = _catalog_parameter_inputs(capability)
     values["prompt"] = _prompt_input()
     values.update(_common_generation_inputs())
+    values.update(_catalog_media_inputs(capability))
     if optional:
         values.update(optional)
     return {
@@ -344,6 +380,19 @@ def _with_reference_inputs(
     return result
 
 
+def _references_from_values(values: dict[str, Any], model_id: str) -> ReferenceCollection:
+    """Collect connected media sockets and the optional ordered collector input."""
+
+    return _with_reference_inputs(
+        values.pop("references", None),
+        image=values.pop("image", None),
+        video=values.pop("video", None),
+        audio=values.pop("audio", None),
+        end_image=values.pop("end_image", None),
+        model_id=model_id,
+    )
+
+
 class CatalogGeneratorNode:
     CAPABILITIES: tuple[Capability, ...] = ()
 
@@ -398,6 +447,7 @@ class ImageGenerateEditNode(CatalogGeneratorNode):
         values = _catalog_parameter_inputs(cls.CAPABILITIES)
         values["prompt"] = _prompt_input()
         values.update(_common_generation_inputs())
+        values.update(_catalog_media_inputs(cls.CAPABILITIES))
         values.update(
             {
                 "references": (
@@ -415,7 +465,7 @@ class ImageGenerateEditNode(CatalogGeneratorNode):
             raise ValidationError(valid)
         values = dict(kwargs)
         values["prompt"] = prompt
-        references = _with_reference_inputs(values.pop("references", None), image=values.pop("image", None), end_image=values.pop("end_image", None), model_id=model)
+        references = _references_from_values(values, model)
         options = _arguments_for_model(model, values)
         outcome = execute_generation(
             model,
@@ -446,6 +496,7 @@ class TextToVideoNode(CatalogGeneratorNode):
             raise ValidationError(valid)
         values = dict(kwargs)
         values["prompt"] = prompt
+        references = _references_from_values(values, model)
         outcome = execute_generation(
             model,
             _arguments_for_model(model, values),
@@ -453,6 +504,7 @@ class TextToVideoNode(CatalogGeneratorNode):
             max_usd=float(values.get("max_usd", 0.0)),
             auto_save=bool(values.get("auto_save", True)),
             timeout=float(values.get("timeout", 1800.0)),
+            references=references,
         )
         return _video_result(outcome)
 
@@ -481,7 +533,7 @@ class ImageToVideoNode(CatalogGeneratorNode):
             raise ValidationError(valid)
         values = dict(kwargs)
         values["prompt"] = prompt
-        references = _with_reference_inputs(values.pop("references", None), image=values.pop("image", None), end_image=values.pop("end_image", None), model_id=model)
+        references = _references_from_values(values, model)
         outcome = execute_generation(
             model,
             _arguments_for_model(model, values),
@@ -543,13 +595,7 @@ class ReferenceToVideoNode(CatalogGeneratorNode):
             raise ValidationError(valid)
         values = dict(kwargs)
         values["prompt"] = prompt
-        references = _with_reference_inputs(
-            values.pop("references", None),
-            image=values.pop("image", None),
-            video=values.pop("video", None),
-            audio=values.pop("audio", None),
-            model_id=model,
-        )
+        references = _references_from_values(values, model)
         outcome = execute_generation(
             model,
             _arguments_for_model(model, values),
@@ -586,7 +632,7 @@ class VideoEditNode(CatalogGeneratorNode):
             raise ValidationError(valid)
         values = dict(kwargs)
         values["prompt"] = prompt
-        references = _with_reference_inputs(values.pop("references", None), image=values.pop("image", None), video=values.pop("video", None), model_id=model)
+        references = _references_from_values(values, model)
         outcome = execute_generation(
             model,
             _arguments_for_model(model, values),
@@ -622,7 +668,7 @@ class VideoExtendNode(CatalogGeneratorNode):
             raise ValidationError(valid)
         values = dict(kwargs)
         values["prompt"] = prompt
-        references = _with_reference_inputs(values.pop("references", None), video=values.pop("video", None), model_id=model)
+        references = _references_from_values(values, model)
         outcome = execute_generation(
             model,
             _arguments_for_model(model, values),
@@ -644,6 +690,8 @@ class AdvancedRequestNode:
     @classmethod
     def INPUT_TYPES(cls):
         all_models = _models()
+        optional = _common_generation_inputs()
+        optional.update(_catalog_media_inputs(None))
         return {
             "required": {
                 "model": (
@@ -665,7 +713,7 @@ class AdvancedRequestNode:
                     },
                 ),
             },
-            "optional": _common_generation_inputs(),
+            "optional": optional,
         }
 
     def generate(self, model, arguments_json, **kwargs):
@@ -675,6 +723,8 @@ class AdvancedRequestNode:
             raise ValidationError("arguments_json must contain a JSON object.") from error
         if not isinstance(arguments, dict):
             raise ValidationError("arguments_json must contain a JSON object.")
+        values = dict(kwargs)
+        references = _references_from_values(values, model)
         outcome = execute_generation(
             model,
             arguments,
@@ -682,6 +732,7 @@ class AdvancedRequestNode:
             max_usd=float(kwargs.get("max_usd", 0.0)),
             auto_save=bool(kwargs.get("auto_save", True)),
             timeout=float(kwargs.get("timeout", 1800.0)),
+            references=references,
             allow_unknown=True,
         )
         image = image_output(outcome) if outcome.model.output.value == "image" else None

@@ -388,50 +388,62 @@ function replaceWidgetWithNativeType(node, widget, factoryType, inputData) {
     return replacement;
 }
 
-function setWidgetFromParameter(node, widget, parameter) {
-    const currentValue = widget.value;
+function parameterWidgetDefinition(parameter, currentValue, baseOptions = {}) {
     const choices = parameter.choices || [];
     const type = parameter.type;
-    const numericType = type === "integer" ? "INT" : type === "number" ? "FLOAT" : null;
-    const factoryType = choices.length ? "COMBO" : numericType || (type === "boolean" ? "BOOLEAN" : "STRING");
+    const numericType = ["integer", "int"].includes(type) ? "INT" : ["number", "float"].includes(type) ? "FLOAT" : null;
+    const factoryType = choices.length ? "COMBO" : numericType || (["boolean", "bool"].includes(type) ? "BOOLEAN" : "STRING");
     const expectedWidgetType = choices.length
         ? "combo"
         : numericType
             ? "number"
-            : type === "boolean"
+            : ["boolean", "bool"].includes(type)
                 ? "toggle"
                 : "text";
+    const defaultValue = parameterDefault(parameter);
+    const initialValue = choices.length && !choices.includes(currentValue)
+        ? (choices.includes(parameter.default) ? parameter.default : choices[0])
+        : currentValue ?? defaultValue;
+    const options = { ...baseOptions };
+    for (const key of ["default", "values", "options", "widgetType", "min", "max", "step", "multiline", "tooltip", "control_after_generate"]) {
+        delete options[key];
+    }
+    options.default = initialValue;
+    if (choices.length) {
+        options.values = choices;
+        options.options = choices;
+        options.widgetType = "COMBO";
+    }
+    if (parameter.minimum != null) options.min = parameter.minimum;
+    if (parameter.maximum != null) options.max = parameter.maximum;
+    if (numericType) options.step = parameter.multiple_of ?? (numericType === "INT" ? 1 : 0.01);
+    if (["array", "list", "object", "json"].includes(type)) options.multiline = true;
+    if (parameter.name === "seed") {
+        options.min = -1;
+        options.control_after_generate = false;
+    }
+    options.tooltip = parameterTooltip(parameter) + (parameter.name === "seed" ? " Use -1 for a random provider seed (field omitted)." : "");
+    const inputData = choices.length ? [choices, options] : [factoryType, options];
+    return { factoryType, expectedWidgetType, inputData, options };
+}
 
-    if (widget.type !== expectedWidgetType) {
-        const factoryOptions = { ...(widget.options || {}), default: currentValue };
-        delete factoryOptions.values;
-        delete factoryOptions.options;
-        delete factoryOptions.widgetType;
-        const inputData = choices.length
-            ? [choices, { ...factoryOptions, values: choices, options: choices, widgetType: "COMBO" }]
-            : [factoryType, factoryOptions];
-        widget = replaceWidgetWithNativeType(node, widget, factoryType, inputData);
+function setWidgetFromParameter(node, widget, parameter) {
+    const currentValue = widget.value;
+    const definition = parameterWidgetDefinition(parameter, currentValue, widget.options);
+    const needsMultilineRebuild = definition.expectedWidgetType === "text" &&
+        Boolean(widget.options?.multiline) !== Boolean(definition.options.multiline);
+
+    if (widget.type !== definition.expectedWidgetType || needsMultilineRebuild) {
+        widget = replaceWidgetWithNativeType(node, widget, definition.factoryType, definition.inputData);
     }
 
     widget.options = widget.options || {};
-    if (choices.length) {
-        widget.options.values = choices;
-        widget.options.options = choices;
-        widget.options.widgetType = "COMBO";
-    } else {
-        delete widget.options.values;
-        delete widget.options.options;
-        if (widget.options.widgetType === "COMBO") delete widget.options.widgetType;
+    for (const key of ["default", "values", "options", "widgetType", "min", "max", "step", "multiline", "tooltip", "control_after_generate"]) {
+        if (Object.prototype.hasOwnProperty.call(definition.options, key)) widget.options[key] = definition.options[key];
+        else delete widget.options[key];
     }
-    if (parameter.minimum != null) widget.options.min = parameter.minimum;
-    else delete widget.options.min;
-    if (parameter.maximum != null) widget.options.max = parameter.maximum;
-    else delete widget.options.max;
-    if (["integer", "number"].includes(parameter.type)) widget.options.step = parameter.multiple_of ?? (parameter.type === "integer" ? 1 : 0.01);
-    const tooltip = parameterTooltip(parameter);
-    widget.options.tooltip = tooltip + (parameter.name === "seed" ? " Use -1 for a random provider seed (field omitted)." : "");
-    widget.tooltip = widget.options.tooltip;
-    if (parameter.name === "seed") widget.options.min = -1;
+    widget.tooltip = definition.options.tooltip;
+    const choices = parameter.choices || [];
 
     if (choices.length && !choices.includes(currentValue)) {
         setWidgetValue(node, widget, parameter.default ?? choices[0]);
@@ -473,6 +485,42 @@ function parameterDefault(parameter) {
         return parameter.name === "shots" ? "[]" : "{}";
     }
     return "";
+}
+
+function ensureCatalogParameterWidgets(node, parameters) {
+    let added = false;
+    for (const [name, parameter] of parameters) {
+        if (name === "prompt" || name === "model_id" || ALWAYS_VISIBLE_WIDGETS.has(name) || MEDIA_PARAMETER_NAMES.has(name)) continue;
+        if (node.widgets?.some((widget) => widget.name === name) || node.inputs?.some((input) => input.name === name)) continue;
+
+        const definition = parameterWidgetDefinition(parameter, parameterDefault(parameter));
+        const factory = ComfyWidgets?.[definition.factoryType];
+        if (typeof factory !== "function") throw new Error(`ComfyUI does not provide the ${definition.factoryType} widget factory.`);
+
+        const infoWidget = node.widgets?.find((widget) => widget.name === "model_info");
+        const infoIndex = infoWidget ? node.widgets.indexOf(infoWidget) : -1;
+        if (infoIndex >= 0) node.widgets.splice(infoIndex, 1);
+        let widget;
+        try {
+            const created = factory(node, name, definition.inputData, app);
+            widget = created?.widget || created;
+            if (!widget || !node.widgets.includes(widget)) throw new Error(`ComfyUI failed to create the ${definition.factoryType} widget for ${name}.`);
+        } finally {
+            if (infoWidget && !node.widgets.includes(infoWidget)) {
+                const widgetIndex = widget ? node.widgets.indexOf(widget) : -1;
+                const insertAt = widgetIndex >= 0 ? widgetIndex + 1 : Math.min(infoIndex, node.widgets.length);
+                node.widgets.splice(insertAt, 0, infoWidget);
+            }
+        }
+
+        widget.label ||= name;
+        if (Array.isArray(node.widgets_values)) node.widgets_values.push(widget.value);
+        setWidgetFromParameter(node, widget, parameter);
+        setWidgetVisibility(widget, true);
+        added = true;
+    }
+    if (added) node.__pryxInfoSized = false;
+    return added;
 }
 
 function resetLegacyWidgetValues(node, parameters) {
@@ -806,6 +854,9 @@ async function updateCatalogWidgets(node) {
         modelWidget.tooltip = modelTooltip(model);
 
         const parameters = new Map((model?.parameters || []).map((item) => [item.name === "shots" ? "shots_json" : item.name, item]));
+        if (!nodeTypeName(node).replace(/\s+/g, "").includes("PRYXComfyUIHiggsfieldAdvancedRequest")) {
+            ensureCatalogParameterWidgets(node, parameters);
+        }
         const previousModelInfo = node.properties?.pryx_comfyui_higgsfield_model_info;
         const modelChanged = Boolean(previousModelInfo?.id && previousModelInfo.id !== model?.id);
         const legacyWorkflow = node.__pryxLegacyWorkflow === true ||
