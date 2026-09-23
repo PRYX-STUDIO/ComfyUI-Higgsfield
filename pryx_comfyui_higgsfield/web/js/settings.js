@@ -11,6 +11,7 @@ const SETTINGS_ROUTE = "/pryx-comfyui-higgsfield/settings";
 const VALIDATE_ROUTE = "/pryx-comfyui-higgsfield/settings/validate";
 const CATALOG_ROUTE = "/pryx-comfyui-higgsfield/catalog";
 const REFRESH_ROUTE = "/pryx-comfyui-higgsfield/catalog/refresh";
+const CREDENTIAL_STATUS_SELECTOR = "[data-pryx-comfyui-higgsfield-credential-status]";
 
 const GENERATOR_CAPABILITIES = {
     PRYXComfyUIHiggsfieldImageGenerateEdit: new Set(["image_generate", "image_edit"]),
@@ -40,6 +41,54 @@ const MEDIA_PARAMETER_NAMES = new Set([
 ]);
 const MEDIA_INPUT_NAMES = new Set(["references", "image", "end_image", "video", "audio"]);
 let catalogPromise;
+let credentialStatusRevision = 0;
+
+function splitCombinedApiKey(value) {
+    const combined = String(value ?? "").trim();
+    const separator = combined.indexOf(":");
+    if (separator < 1) {
+        throw new Error("Paste the full Higgsfield API key in KEY_ID:SECRET format.");
+    }
+
+    const key_id = combined.slice(0, separator).trim();
+    const secret = combined.slice(separator + 1).trim();
+    if (!key_id || !secret) {
+        throw new Error("Paste the full Higgsfield API key in KEY_ID:SECRET format.");
+    }
+    return { key_id, secret };
+}
+
+function credentialStatusText(result) {
+    return result.configured
+        ? "Configured (" + (result.key_id || "key") + ")"
+        : "Not configured";
+}
+
+function renderCredentialStatus(message) {
+    document.querySelectorAll(CREDENTIAL_STATUS_SELECTOR).forEach((status) => {
+        status.textContent = message;
+    });
+}
+
+function updateCredentialStatus(result) {
+    credentialStatusRevision += 1;
+    renderCredentialStatus(credentialStatusText(result));
+}
+
+function loadCredentialStatus() {
+    const revision = credentialStatusRevision;
+    requestJson(SETTINGS_ROUTE)
+        .then((result) => {
+            if (revision === credentialStatusRevision) {
+                renderCredentialStatus(credentialStatusText(result));
+            }
+        })
+        .catch(() => {
+            if (revision === credentialStatusRevision) {
+                renderCredentialStatus("Unavailable");
+            }
+        });
+}
 
 async function requestJson(url, options = {}) {
     const response = await fetch(url, {
@@ -79,19 +128,11 @@ function createCredentialSetting() {
 
     const button = createSettingsButton("Manage credentials", openCredentialDialog);
     const status = document.createElement("span");
+    status.setAttribute("data-pryx-comfyui-higgsfield-credential-status", "");
     status.textContent = "Checking...";
     status.style.opacity = "0.75";
     wrapper.append(button, status);
-
-    requestJson(SETTINGS_ROUTE)
-        .then((result) => {
-            status.textContent = result.configured
-                ? "Configured (" + (result.key_id || "key") + ")"
-                : "Not configured";
-        })
-        .catch(() => {
-            status.textContent = "Unavailable";
-        });
+    loadCredentialStatus();
 
     return wrapper;
 }
@@ -137,12 +178,10 @@ function openCredentialDialog(event) {
         '<button type="button" data-action="close" aria-label="Close" style="border:0; background:transparent; color:inherit; font-size:1.4rem; cursor:pointer;">×</button>' +
         '</div>' +
         '<form>' +
-        '<label style="display:block; margin-bottom:14px;">Key ID' +
-        '<input name="key_id" autocomplete="off" required style="display:block; box-sizing:border-box; width:100%; margin-top:6px; padding:10px 12px; border:1px solid var(--border-color, #4b5563); border-radius:8px; background:var(--comfy-input-bg, #151515); color:inherit;" />' +
+        '<label style="display:block; margin-bottom:8px;">Higgsfield API key (KEY_ID:SECRET)' +
+        '<input name="api_key" type="password" autocomplete="new-password" required placeholder="Paste the complete key from Higgsfield" style="display:block; box-sizing:border-box; width:100%; margin-top:6px; padding:10px 12px; border:1px solid var(--border-color, #4b5563); border-radius:8px; background:var(--comfy-input-bg, #151515); color:inherit;" />' +
         '</label>' +
-        '<label style="display:block; margin-bottom:14px;">Secret' +
-        '<input name="secret" type="password" autocomplete="new-password" required style="display:block; box-sizing:border-box; width:100%; margin-top:6px; padding:10px 12px; border:1px solid var(--border-color, #4b5563); border-radius:8px; background:var(--comfy-input-bg, #151515); color:inherit;" />' +
-        '</label>' +
+        '<p style="margin:0 0 16px; opacity:.75; line-height:1.45;">Paste the complete value Higgsfield shows, in <code>KEY_ID:SECRET</code> format. We split it at the first colon. The key name in the Higgsfield console is only a label.</p>' +
         '<output name="status" aria-live="polite" style="display:block; min-height:1.5em; margin:4px 0 18px; opacity:.8;"></output>' +
         '<div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">' +
         '<button type="button" data-action="cancel" style="padding:9px 14px; border:1px solid var(--border-color, #4b5563); border-radius:8px; background:transparent; color:inherit; cursor:pointer;">Cancel</button>' +
@@ -154,10 +193,7 @@ function openCredentialDialog(event) {
 
     const form = panel.querySelector("form");
     const status = form.elements.status;
-    const values = () => ({
-        key_id: form.elements.key_id.value,
-        secret: form.elements.secret.value,
-    });
+    const values = () => splitCombinedApiKey(form.elements.api_key.value);
     const close = () => {
         document.removeEventListener("keydown", onKeyDown);
         overlay.remove();
@@ -191,9 +227,10 @@ function openCredentialDialog(event) {
     overlay.querySelector('[data-action="save"]').addEventListener("click", async () => {
         status.textContent = "Saving...";
         try {
-            await requestJson(SETTINGS_ROUTE, { method: "PUT", body: JSON.stringify(values()) });
-            form.elements.secret.value = "";
-            status.textContent = "Saved locally. The secret was cleared from the form.";
+            const result = await requestJson(SETTINGS_ROUTE, { method: "PUT", body: JSON.stringify(values()) });
+            form.elements.api_key.value = "";
+            close();
+            updateCredentialStatus(result);
         } catch (error) {
             status.textContent = error.message;
         }
@@ -205,7 +242,7 @@ function openCredentialDialog(event) {
         ) || document.querySelector('[role="dialog"]:not([aria-modal="true"])');
     (settingsDialog || document.body).appendChild(overlay);
     document.addEventListener("keydown", onKeyDown);
-    form.elements.key_id.focus();
+    form.elements.api_key.focus();
 }
 
 async function refreshCatalog() {

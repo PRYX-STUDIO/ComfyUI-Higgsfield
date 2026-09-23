@@ -79,13 +79,13 @@ frontend extension is reloaded as well.
 
 Open **ComfyUI Settings → PRYX ComfyUI Higgsfield → Credentials** and enter:
 
-- **Key ID** — your Higgsfield API key ID
-- **Secret** — your Higgsfield API secret
+- **Higgsfield API key** — paste the complete value Higgsfield shows when you
+  create the key, in `key-id:key-secret` format. ComfyUI splits it at the first
+  colon before storing the two parts separately.
 
-A UUID-shaped key ID is only the identifier, not the complete credential.
-The API sends `Authorization: Key <key-id>:<secret>`. Copy the secret when
-creating the key in Higgsfield; if you only have the ID, create a new key and
-store both values. Never put either value in a workflow or issue report.
+The key name shown in the Higgsfield console is only a label; it is not part of
+the credential. If you no longer have the secret, create a new key and copy its
+complete value. Never put the key in a workflow or issue report.
 
 The **Validate estimate** button checks the credentials with an estimate
 request. It does not submit a paid generation. **Save locally** stores the
