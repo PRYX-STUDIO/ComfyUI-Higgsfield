@@ -25,7 +25,7 @@ Documentation = "https://github.com/PRYX-STUDIO/pryx-comfyui-higgsfield#readme"
 PublisherId = "pryx-studio"
 DisplayName = "PRYX ComfyUI Higgsfield"
 Icon = "https://raw.githubusercontent.com/PRYX-STUDIO/pryx-comfyui-higgsfield/main/assets/registry-icon.png"
-Banner = "https://raw.githubusercontent.com/PRYX-STUDIO/pryx-comfyui-higgsfield/main/assets/registry-banner.png"
+Banner = "https://raw.githubusercontent.com/PRYX-STUDIO/pryx-comfyui-higgsfield/main/assets/registry-banner.jpg"
 RequiresComfyUI = ">=0.35.0"
 FrontendVersion = ">=1.53.6"
 
