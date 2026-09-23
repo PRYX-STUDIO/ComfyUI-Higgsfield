@@ -4256,8 +4256,8 @@
     },
     {
       "id": "higgsfiled-genjutsu-motion-transfer-v1-0",
-      "display_name": "MotionTransferParams · Motion Transfer",
-      "provider": "Higgsfiled",
+      "display_name": "Genjutsu · Motion Transfer",
+      "provider": "Higgsfield",
       "family": "Genjutsu Motion Transfer",
       "endpoint": "higgsfiled/genjutsu/motion-transfer/v1.0",
       "capability": "video_edit",
@@ -4314,7 +4314,9 @@
       "docs_source": "https://open.higgsfield.ai/models/higgsfiled/genjutsu/motion-transfer/v1.0/api-reference",
       "docs_checked": "2026-09-23",
       "status": "active",
-      "notes": [],
+      "notes": [
+        "Motion Transfer uses one source video plus 1–8 character images; the source video supplies the motion. The API has no separate duration field. Choose 480p or 720p."
+      ],
       "input_schema": {
         "type": "object",
         "title": "MotionTransferParams",
@@ -4363,8 +4365,8 @@
     },
     {
       "id": "higgsfiled-genjutsu-object-swap-v1-0",
-      "display_name": "ObjectSwapParams · Object Swap",
-      "provider": "Higgsfiled",
+      "display_name": "Genjutsu · Object Swap",
+      "provider": "Higgsfield",
       "family": "Genjutsu Object Swap",
       "endpoint": "higgsfiled/genjutsu/object-swap/v1.0",
       "capability": "video_edit",
@@ -4421,7 +4423,9 @@
       "docs_source": "https://open.higgsfield.ai/models/higgsfiled/genjutsu/object-swap/v1.0/api-reference",
       "docs_checked": "2026-09-23",
       "status": "active",
-      "notes": [],
+      "notes": [
+        "Object Swap uses one source video plus 1–8 target images for characters, products, or clothes. The API has no separate duration field. Choose 480p or 720p."
+      ],
       "input_schema": {
         "type": "object",
         "title": "ObjectSwapParams",

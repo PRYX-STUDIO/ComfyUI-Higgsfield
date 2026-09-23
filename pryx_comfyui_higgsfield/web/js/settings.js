@@ -1,5 +1,6 @@
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
+import { ComfyWidgets } from "../../../scripts/widgets.js";
 
 /* PRYX ComfyUI Higgsfield extension.
  *
@@ -357,17 +358,67 @@ function setWidgetValue(node, widget, value) {
     }
 }
 
+function replaceWidgetWithNativeType(node, widget, factoryType, inputData) {
+    const index = node.widgets?.indexOf(widget) ?? -1;
+    if (index < 0) return widget;
+
+    const factory = ComfyWidgets?.[factoryType];
+    if (typeof factory !== "function") {
+        throw new Error(`ComfyUI does not provide the ${factoryType} widget factory.`);
+    }
+
+    const created = factory(node, widget.name, inputData, app);
+    const replacement = created?.widget || created;
+    if (!replacement || !node.widgets.includes(replacement)) {
+        throw new Error(`ComfyUI failed to create the ${factoryType} widget for ${widget.name}.`);
+    }
+
+    // ComfyUI widget types carry their own drawing and pointer handlers. Replace
+    // the widget through the native factory instead of changing `widget.type`.
+    widget.onRemove?.();
+    node.widgets.splice(index, 1);
+    const appendedIndex = node.widgets.indexOf(replacement);
+    node.widgets.splice(appendedIndex, 1);
+    node.widgets.splice(index, 0, replacement);
+
+    replacement.label = widget.label;
+    replacement.hidden = widget.hidden;
+    replacement.options = { ...(replacement.options || {}), ...(widget.options || {}) };
+    if (Array.isArray(node.widgets_values)) node.widgets_values[index] = widget.value;
+    return replacement;
+}
+
 function setWidgetFromParameter(node, widget, parameter) {
-    widget.options = widget.options || {};
     const currentValue = widget.value;
     const choices = parameter.choices || [];
+    const type = parameter.type;
+    const numericType = type === "integer" ? "INT" : type === "number" ? "FLOAT" : null;
+    const factoryType = choices.length ? "COMBO" : numericType || (type === "boolean" ? "BOOLEAN" : "STRING");
+    const expectedWidgetType = choices.length
+        ? "combo"
+        : numericType
+            ? "number"
+            : type === "boolean"
+                ? "toggle"
+                : "text";
+
+    if (widget.type !== expectedWidgetType) {
+        const factoryOptions = { ...(widget.options || {}), default: currentValue };
+        delete factoryOptions.values;
+        delete factoryOptions.options;
+        delete factoryOptions.widgetType;
+        const inputData = choices.length
+            ? [choices, { ...factoryOptions, values: choices, options: choices, widgetType: "COMBO" }]
+            : [factoryType, factoryOptions];
+        widget = replaceWidgetWithNativeType(node, widget, factoryType, inputData);
+    }
+
+    widget.options = widget.options || {};
     if (choices.length) {
-        widget.type = "combo";
         widget.options.values = choices;
         widget.options.options = choices;
         widget.options.widgetType = "COMBO";
     } else {
-        if (widget.type === "combo") widget.type = parameter.type === "integer" || parameter.type === "number" ? "number" : "text";
         delete widget.options.values;
         delete widget.options.options;
         if (widget.options.widgetType === "COMBO") delete widget.options.widgetType;
@@ -403,6 +454,7 @@ function setWidgetFromParameter(node, widget, parameter) {
     if (parameter.type === "boolean" && typeof parameter.default === "boolean") {
         setWidgetValue(node, widget, Boolean(widget.value));
     }
+    return widget;
 }
 
 function parameterDefault(parameter) {

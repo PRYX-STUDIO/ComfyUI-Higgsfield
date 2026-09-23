@@ -14,6 +14,23 @@ def test_bundled_catalog_has_documented_model_families():
     assert set(catalog.get("wan-3-reference-to-video").input_media) == {"image", "video", "audio", "file", "url"}
 
 
+def test_genjutsu_modes_are_video_edit_models_with_their_documented_inputs():
+    catalog = load_bundled_catalog()
+    motion_transfer = catalog.get("higgsfiled-genjutsu-motion-transfer-v1-0")
+    object_swap = catalog.get("higgsfiled-genjutsu-object-swap-v1-0")
+
+    for model in (motion_transfer, object_swap):
+        assert model.capability.value == "video_edit"
+        assert model.display_name.startswith("Genjutsu ·")
+        assert model.endpoint.startswith("higgsfiled/genjutsu/")
+        parameters = model.parameter_map
+        assert parameters["video_url"].required is True
+        assert parameters["image_urls"].required is True
+        assert parameters["image_urls"].min_items == 1
+        assert parameters["image_urls"].max_items == 8
+        assert parameters["resolution"].choices == ("720p", "480p")
+
+
 def test_catalog_rejects_duplicate_ids():
     payload = load_bundled_catalog().as_payload()
     payload["models"].append(copy.deepcopy(payload["models"][0]))

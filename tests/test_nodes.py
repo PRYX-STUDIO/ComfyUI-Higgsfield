@@ -5,7 +5,7 @@ from types import ModuleType
 
 from pryx_comfyui_higgsfield.nodes import NODE_CLASS_MAPPINGS
 from pryx_comfyui_higgsfield.nodes.catalog_node import ModelCatalogNode
-from pryx_comfyui_higgsfield.nodes.generation import ReferenceToVideoNode, TextToVideoNode
+from pryx_comfyui_higgsfield.nodes.generation import ReferenceToVideoNode, TextToVideoNode, VideoEditNode
 from pryx_comfyui_higgsfield.nodes.references import Reference, ReferenceCollectorNode, ReferenceCollection
 from pryx_comfyui_higgsfield.media import _load_native_video
 
@@ -44,6 +44,15 @@ def test_reference_to_video_exposes_catalog_model_choices():
     assert model_input[0] == "STRING"
     assert "minimax-h3-reference-to-video" in model_input[1]["choices"]
     assert "seedance-2-5-reference-to-video" in model_input[1]["choices"]
+
+
+def test_genjutsu_modes_are_selectable_in_video_edit_and_usd_cap_defaults_to_zero():
+    model_input = VideoEditNode.INPUT_TYPES()["required"]["model"][1]["choices"]
+    optional = VideoEditNode.INPUT_TYPES()["optional"]
+
+    assert "higgsfiled-genjutsu-motion-transfer-v1-0" in model_input
+    assert "higgsfiled-genjutsu-object-swap-v1-0" in model_input
+    assert optional["max_usd"][1]["default"] == 0.0
 
 
 def test_generator_uses_connected_prompt_and_model_inputs():
