@@ -4,7 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ComfyUI](https://img.shields.io/badge/ComfyUI-%E2%89%A50.35.0-4f46e5)](https://github.com/comfyanonymous/ComfyUI)
 
-Catalog-driven Higgsfield API nodes for ComfyUI.
+Generate and edit images and videos with Higgsfield from ComfyUI, using
+model-specific controls, connected media references, and estimate-first cost
+checks.
 
 PRYX ComfyUI Higgsfield lets you call the documented Higgsfield image and video
 endpoints from normal ComfyUI workflows. Model-specific controls, choices,

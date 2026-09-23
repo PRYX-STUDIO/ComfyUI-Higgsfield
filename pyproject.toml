@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pryx-comfyui-higgsfield"
 version = "1.0.0"
-description = "Catalog-driven Higgsfield API nodes for ComfyUI."
+description = "Generate and edit images and videos with Higgsfield from ComfyUI, using model-specific controls, connected media references, and estimate-first cost checks."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
 license = "MIT"
@@ -19,11 +19,13 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/PRYX-STUDIO/pryx-comfyui-higgsfield"
 Repository = "https://github.com/PRYX-STUDIO/pryx-comfyui-higgsfield"
-Documentation = "https://docs.higgsfield.ai/docs/llms.txt"
+Documentation = "https://github.com/PRYX-STUDIO/pryx-comfyui-higgsfield#readme"
 
 [tool.comfy]
 PublisherId = "pryx-studio"
 DisplayName = "PRYX ComfyUI Higgsfield"
+Icon = "https://raw.githubusercontent.com/PRYX-STUDIO/pryx-comfyui-higgsfield/main/assets/registry-icon.png"
+Banner = "https://raw.githubusercontent.com/PRYX-STUDIO/pryx-comfyui-higgsfield/main/assets/registry-banner.png"
 RequiresComfyUI = ">=0.35.0"
 FrontendVersion = ">=1.53.6"
 

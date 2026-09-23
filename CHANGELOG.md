@@ -12,6 +12,7 @@
 - Added Genjutsu Motion Transfer and Genjutsu Object Swap as separate Video Edit
   model choices, and kept model-specific numeric controls interactive when
   their widget type changes.
+- Prepared ComfyUI Registry metadata and package artwork for the first listing.
 - Added mock tests and a documentation-driven catalog sync tool.
 - Expanded the public README with installation, credentials, node guides,
   reference ordering, estimate safety, outputs, catalog coverage, and
