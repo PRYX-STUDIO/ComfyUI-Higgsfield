@@ -22,6 +22,8 @@ _MEDIA_PARAMETER_NAMES = {
     "image_url",
     "end_image_url",
     "last_image_url",
+    "first_frame_url",
+    "last_frame_url",
     "image_urls",
     "video_url",
     "video_urls",
@@ -32,19 +34,35 @@ _MEDIA_PARAMETER_NAMES = {
 }
 
 _PARAMETER_HINTS = {
+    "aigc_watermark": "Include the provider's AI-generated-content watermark.",
     "aspect_ratio": "Output framing. Use the exact format shown in the choices.",
     "batch_size": "Number of images to generate in one request.",
+    "bitrate_mode": "Select the encoded video bitrate tier.",
+    "camera_aperture": "Virtual camera aperture for the selected cinema model.",
+    "camera_lens": "Virtual camera lens for the selected cinema model.",
+    "camera_model": "Virtual camera body for the selected cinema model.",
+    "camera_movement": "Camera motion preset supported by this model.",
     "cfg_scale": "How strongly the model follows the prompt. The catalog defines the valid range.",
     "duration": "Video duration in seconds. The selected model defines the valid range.",
     "enable_thinking": "Allow the model's reasoning mode when the selected model supports it.",
     "enhance_prompt": "Ask the provider to improve the prompt before generation.",
     "generate_audio": "Generate or include audio when the selected video model supports it.",
+    "image_weight": "Strength of the connected image's influence on generation.",
+    "keep_original_sound": "Keep sound from the source video when supported.",
+    "mode": "Provider quality tier; separate from request_mode, which controls billing.",
+    "multi_prompt": "JSON array of shot objects with prompt and duration; check the model limits.",
     "multi_shots": "Generate multiple shots when supported by the selected model.",
+    "negative_prompt": "Things the model should avoid showing.",
     "output_format": "Output container format supported by the selected model.",
     "preset_id": "Optional provider preset identifier.",
     "quality": "Image quality tier supported by the selected model.",
+    "prompt_extend": "Allow the provider to expand the prompt.",
+    "prompt_extend_mode": "Provider-specific prompt expansion mode.",
+    "prompt_optimizer": "Provider-specific prompt optimization setting.",
     "resolution": "Output resolution supported by the selected model.",
     "seed": "Optional deterministic seed. The provider may ignore it.",
+    "shot_type": "Select a custom or automatically planned shot sequence.",
+    "sound": "Whether the provider should generate a soundtrack.",
     "shots": "JSON array of shot descriptions. The selected model defines the maximum count.",
     "style": "Optional provider style value.",
     "style_id": "Optional SOUL style identifier from the Higgsfield style catalog.",
@@ -64,7 +82,7 @@ def _models(capability: Capability | tuple[Capability, ...] | None = None) -> li
 
 def _common_generation_inputs() -> dict[str, tuple[Any, dict[str, Any]]]:
     return {
-        "mode": (
+        "request_mode": (
             ["estimate_only", "generate"],
             {
                 "default": "estimate_only",
@@ -120,7 +138,8 @@ def _model_inputs(capability: Capability | tuple[Capability, ...] | None = None)
 
 
 def _parameter_hint(spec: ParameterSpec) -> str:
-    hint = spec.description or _PARAMETER_HINTS.get(spec.name, "Catalog-defined model parameter.")
+    generic = spec.description.strip().lower().replace("_", " ") == spec.name.replace("_", " ")
+    hint = _PARAMETER_HINTS.get(spec.name, "Catalog-defined model parameter.") if generic or not spec.description else spec.description
     details: list[str] = []
     if spec.choices:
         details.append("Choices: " + ", ".join(map(str, spec.choices)))
@@ -132,6 +151,10 @@ def _parameter_hint(spec: ParameterSpec) -> str:
         lower = str(spec.min_items) if spec.min_items is not None else "0"
         upper = str(spec.max_items) if spec.max_items is not None else "∞"
         details.append(f"Items: {lower}–{upper}")
+    if spec.min_length is not None or spec.max_length is not None:
+        details.append(f"Characters: {spec.min_length or 0}–{spec.max_length or '∞'}")
+    if spec.multiple_of is not None:
+        details.append(f"Step: {spec.multiple_of}")
     return hint if not details else hint + " " + " ".join(details) + "."
 
 
@@ -170,7 +193,7 @@ def _parameter_input(spec: ParameterSpec) -> tuple[str, dict[str, Any]]:
             options["min"] = spec.minimum
         if spec.maximum is not None:
             options["max"] = spec.maximum
-        options.setdefault("step", 0.01)
+        options.setdefault("step", spec.multiple_of or 0.01)
         return "FLOAT", options
     if type_name in {"boolean", "bool"}:
         options.setdefault("default", False)
@@ -200,7 +223,7 @@ def _catalog_parameter_inputs(capability: Capability | tuple[Capability, ...]) -
             choices = tuple(dict.fromkeys((*existing.choices, *spec.choices)))
             specs[spec.name] = ParameterSpec(
                 name=existing.name,
-                type=existing.type,
+                type="number" if {existing.type, spec.type} == {"integer", "number"} else existing.type,
                 required=existing.required or spec.required,
                 default=existing.default if existing.default is not None else spec.default,
                 choices=choices,
@@ -224,6 +247,9 @@ def _catalog_parameter_inputs(capability: Capability | tuple[Capability, ...]) -
                     if existing.max_items is not None or spec.max_items is not None
                     else None
                 ),
+                min_length=existing.min_length if existing.min_length is not None else spec.min_length,
+                max_length=existing.max_length if existing.max_length is not None else spec.max_length,
+                multiple_of=existing.multiple_of if existing.multiple_of is not None else spec.multiple_of,
                 description=existing.description or spec.description,
                 media_types=tuple(dict.fromkeys((*existing.media_types, *spec.media_types))),
             )
@@ -272,6 +298,8 @@ def _arguments_for_model(model_id: str, values: Mapping[str, Any]) -> dict[str, 
                 value = json.loads(value)
             except ValueError as error:
                 raise ValidationError(f"{name} must contain valid JSON.") from error
+        if parameters[name].type == "integer" and isinstance(value, float) and value.is_integer():
+            value = int(value)
         result[name] = value
     if "shots_json" in values and "shots" in parameters:
         raw = values.get("shots_json") or "[]"
@@ -298,11 +326,12 @@ def _with_reference_inputs(
     params = _CATALOG.get(model_id).parameter_map if model_id else {}
     if image is not None:
         frames = _split_batch(image)
-        if "image_url" in params and len(frames) != 1:
+        if any(name in params for name in ("image_url", "first_frame_url")) and len(frames) != 1:
             raise ValidationError("The start image socket accepts exactly one image; use references for ordered batches.")
-        result.extend(Reference("image", item, label=f"Direct image {index}", field="image_url" if "image_url" in params else "") for index, item in enumerate(frames, 1))
+        start_field = next((name for name in ("image_url", "first_frame_url") if name in params), "")
+        result.extend(Reference("image", item, label=f"Direct image {index}", field=start_field) for index, item in enumerate(frames, 1))
     if end_image is not None:
-        field = next((name for name in ("end_image_url", "last_image_url") if name in params), None)
+        field = next((name for name in ("end_image_url", "last_image_url", "last_frame_url") if name in params), None)
         frames = _split_batch(end_image)
         if not field or len(frames) != 1:
             raise ValidationError("The selected model must support an end frame, supplied as exactly one image.")
@@ -387,7 +416,7 @@ class ImageGenerateEditNode(CatalogGeneratorNode):
         outcome = execute_generation(
             model,
             options,
-            mode=values.get("mode", "estimate_only"),
+            mode=values.get("request_mode", "estimate_only"),
             max_usd=float(values.get("max_usd", 0.0)),
             auto_save=bool(values.get("auto_save", True)),
             timeout=float(values.get("timeout", 1800.0)),
@@ -416,7 +445,7 @@ class TextToVideoNode(CatalogGeneratorNode):
         outcome = execute_generation(
             model,
             _arguments_for_model(model, values),
-            mode=values.get("mode", "estimate_only"),
+            mode=values.get("request_mode", "estimate_only"),
             max_usd=float(values.get("max_usd", 0.0)),
             auto_save=bool(values.get("auto_save", True)),
             timeout=float(values.get("timeout", 1800.0)),
@@ -452,7 +481,7 @@ class ImageToVideoNode(CatalogGeneratorNode):
         outcome = execute_generation(
             model,
             _arguments_for_model(model, values),
-            mode=values.get("mode", "estimate_only"),
+            mode=values.get("request_mode", "estimate_only"),
             max_usd=float(values.get("max_usd", 0.0)),
             auto_save=bool(values.get("auto_save", True)),
             timeout=float(values.get("timeout", 1800.0)),
@@ -520,7 +549,7 @@ class ReferenceToVideoNode(CatalogGeneratorNode):
         outcome = execute_generation(
             model,
             _arguments_for_model(model, values),
-            mode=values.get("mode", "estimate_only"),
+            mode=values.get("request_mode", "estimate_only"),
             max_usd=float(values.get("max_usd", 0.0)),
             auto_save=bool(values.get("auto_save", True)),
             timeout=float(values.get("timeout", 1800.0)),
@@ -530,7 +559,7 @@ class ReferenceToVideoNode(CatalogGeneratorNode):
 
 
 class VideoEditNode(CatalogGeneratorNode):
-    CAPABILITIES = (Capability.VIDEO_EDIT,)
+    CAPABILITIES = (Capability.VIDEO_EDIT, Capability.VIDEO_MOTION)
     CATEGORY = "PRYX/ComfyUI/Higgsfield"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "STRING")
@@ -539,9 +568,10 @@ class VideoEditNode(CatalogGeneratorNode):
     @classmethod
     def INPUT_TYPES(cls):
         return _generator_inputs(
-            Capability.VIDEO_EDIT,
+            cls.CAPABILITIES,
             optional={
                 "video": ("VIDEO", {"tooltip": "Video to edit. The selected model defines whether it is required."}),
+                "image": ("IMAGE", {"tooltip": "Optional source or target image for motion and editing models."}),
                 "references": (ReferenceCollection.TYPE, {"tooltip": "Optional ordered edit references."}),
             },
         )
@@ -552,11 +582,11 @@ class VideoEditNode(CatalogGeneratorNode):
             raise ValidationError(valid)
         values = dict(kwargs)
         values["prompt"] = prompt
-        references = _with_reference_inputs(values.pop("references", None), video=values.pop("video", None), model_id=model)
+        references = _with_reference_inputs(values.pop("references", None), image=values.pop("image", None), video=values.pop("video", None), model_id=model)
         outcome = execute_generation(
             model,
             _arguments_for_model(model, values),
-            mode=values.get("mode", "estimate_only"),
+            mode=values.get("request_mode", "estimate_only"),
             max_usd=float(values.get("max_usd", 0.0)),
             auto_save=bool(values.get("auto_save", True)),
             timeout=float(values.get("timeout", 1800.0)),
@@ -592,7 +622,7 @@ class VideoExtendNode(CatalogGeneratorNode):
         outcome = execute_generation(
             model,
             _arguments_for_model(model, values),
-            mode=values.get("mode", "estimate_only"),
+            mode=values.get("request_mode", "estimate_only"),
             max_usd=float(values.get("max_usd", 0.0)),
             auto_save=bool(values.get("auto_save", True)),
             timeout=float(values.get("timeout", 1800.0)),
@@ -644,7 +674,7 @@ class AdvancedRequestNode:
         outcome = execute_generation(
             model,
             arguments,
-            mode=kwargs.get("mode", "estimate_only"),
+            mode=kwargs.get("request_mode", "estimate_only"),
             max_usd=float(kwargs.get("max_usd", 0.0)),
             auto_save=bool(kwargs.get("auto_save", True)),
             timeout=float(kwargs.get("timeout", 1800.0)),

@@ -17,17 +17,19 @@ const GENERATOR_CAPABILITIES = {
     PRYXComfyUIHiggsfieldTextToVideo: new Set(["text_to_video"]),
     PRYXComfyUIHiggsfieldImageToVideo: new Set(["image_to_video"]),
     PRYXComfyUIHiggsfieldReferenceToVideo: new Set(["reference_to_video"]),
-    PRYXComfyUIHiggsfieldVideoEdit: new Set(["video_edit"]),
+    PRYXComfyUIHiggsfieldVideoEdit: new Set(["video_edit", "video_motion"]),
     PRYXComfyUIHiggsfieldVideoExtend: new Set(["video_extend"]),
 };
 GENERATOR_CAPABILITIES.PRYXComfyUIHiggsfieldAdvancedRequest = new Set(Object.values(GENERATOR_CAPABILITIES).flatMap((set) => [...set]));
-const NODE_UI_SCHEMA_VERSION = 5;
+const NODE_UI_SCHEMA_VERSION = 6;
 
-const ALWAYS_VISIBLE_WIDGETS = new Set(["model", "mode", "max_usd", "auto_save", "timeout", "model_info", "arguments_json"]);
+const ALWAYS_VISIBLE_WIDGETS = new Set(["model", "request_mode", "max_usd", "auto_save", "timeout", "model_info", "arguments_json"]);
 const MEDIA_PARAMETER_NAMES = new Set([
     "image_url",
     "end_image_url",
     "last_image_url",
+    "first_frame_url",
+    "last_frame_url",
     "image_urls",
     "video_url",
     "video_urls",
@@ -266,9 +268,29 @@ function modelForNode(node, models) {
     return models.find((item) => item.id === modelId) || null;
 }
 
+const PARAMETER_HINTS = {
+    aigc_watermark: "Include the provider's AI-generated-content watermark.",
+    aspect_ratio: "Output framing for this model.",
+    bitrate_mode: "Encoded video bitrate tier.",
+    camera_movement: "Camera motion preset.",
+    cfg_scale: "How strongly the model follows the prompt.",
+    duration: "Video duration in seconds.",
+    elements: "JSON array of provider element IDs.",
+    generate_audio: "Generate or include audio where supported.",
+    keep_original_sound: "Keep the source video's sound.",
+    mode: "Provider quality tier, separate from request_mode (estimate or paid generation).",
+    multi_prompt: "JSON array of shot objects with prompt and duration.",
+    negative_prompt: "Things the model should avoid showing.",
+    output_format: "Output container format.",
+    resolution: "Provider resolution tier, not a width × height input.",
+    seed: "Optional deterministic seed; -1 omits it.",
+    sound: "Provider soundtrack setting.",
+};
+
 function parameterTooltip(parameter) {
     const pieces = [];
-    if (parameter.description) pieces.push(parameter.description);
+    const generic = parameter.description?.trim().toLowerCase().replaceAll("_", " ") === parameter.name.replaceAll("_", " ");
+    pieces.push(!parameter.description || generic ? (PARAMETER_HINTS[parameter.name] || "Model-specific parameter.") : parameter.description);
     if (parameter.choices?.length) pieces.push("Choices: " + parameter.choices.join(", "));
     if (parameter.minimum != null || parameter.maximum != null) {
         pieces.push(`Range: ${parameter.minimum ?? "-∞"}–${parameter.maximum ?? "∞"}`);
@@ -276,7 +298,11 @@ function parameterTooltip(parameter) {
     if (parameter.min_items != null || parameter.max_items != null) {
         pieces.push(`Items: ${parameter.min_items ?? 0}–${parameter.max_items ?? "∞"}`);
     }
-    return pieces.join(" ") || "Catalog-defined model parameter.";
+    if (parameter.min_length != null || parameter.max_length != null) {
+        pieces.push(`Characters: ${parameter.min_length ?? 0}–${parameter.max_length ?? "∞"}`);
+    }
+    if (parameter.multiple_of != null) pieces.push(`Step: ${parameter.multiple_of}`);
+    return pieces.join(" ");
 }
 
 function setWidgetVisibility(widget, visible) {
@@ -313,6 +339,7 @@ function setWidgetFromParameter(node, widget, parameter) {
     else delete widget.options.min;
     if (parameter.maximum != null) widget.options.max = parameter.maximum;
     else delete widget.options.max;
+    if (["integer", "number"].includes(parameter.type)) widget.options.step = parameter.multiple_of ?? (parameter.type === "integer" ? 1 : 0.01);
     const tooltip = parameterTooltip(parameter);
     widget.options.tooltip = tooltip + (parameter.name === "seed" ? " Use -1 for a random provider seed (field omitted)." : "");
     widget.tooltip = widget.options.tooltip;
@@ -361,7 +388,7 @@ function parameterDefault(parameter) {
 
 function resetLegacyWidgetValues(node, parameters) {
     const defaults = {
-        mode: "estimate_only",
+        request_mode: "estimate_only",
         max_usd: 0,
         auto_save: true,
         timeout: 1800,
@@ -389,13 +416,13 @@ function updateMediaInputs(node, model) {
     for (const input of node.inputs || []) {
         if (!MEDIA_INPUT_NAMES.has(input.name)) continue;
         const visible = input.name === "references" ? supported.size > 0 : input.name === "end_image"
-            ? model?.parameters?.some((p) => ["end_image_url", "last_image_url"].includes(p.name))
+            ? model?.parameters?.some((p) => ["end_image_url", "last_image_url", "last_frame_url"].includes(p.name))
             : supported.has(input.name);
         input.hidden = !visible;
         input.tooltip = visible
             ? input.name === "references"
                 ? "Combined media from Reference Collector. Direct media inputs are added to this collection; all inputs share the model limits."
-                : input.name === "image" && model?.parameters?.some((p) => p.name === "image_url")
+                : input.name === "image" && model?.parameters?.some((p) => ["image_url", "first_frame_url"].includes(p.name))
                     ? "One start/source image. Use end_image for the final frame when supported."
                     : `${input.name} connected directly from a matching ComfyUI loader or processing node. Counts toward the same limits as Reference Collector.`
             : `Hidden for the selected model; it does not accept ${input.name} references.`;
@@ -415,11 +442,63 @@ function updateMediaInputs(node, model) {
 }
 
 const MEDIA_LABELS = {
-    image_url: "Start/source image", end_image_url: "End image", last_image_url: "End image",
+    image_url: "Start/source image", first_frame_url: "Start frame",
+    end_image_url: "End image", last_image_url: "End image", last_frame_url: "End frame",
     image_urls: "Reference images", video_url: "Source video", video_urls: "Reference videos",
     audio_url: "Audio track", audio_urls: "Reference audio tracks",
     file_url: "Document link", link_url: "Web page link",
 };
+
+function schemaConditionLines(schema, prefix = "") {
+    if (!schema || typeof schema !== "object") return [];
+    const lines = [];
+    const required = (rule) => (rule?.required || []).map((name) => MEDIA_LABELS[name] || name).join(" + ");
+    const constraints = (rule) => Object.entries(rule?.properties || {}).flatMap(([name, value]) => {
+        const label = MEDIA_LABELS[name] || name;
+        const details = [];
+        if (Object.hasOwn(value, "const")) details.push(`must equal ${JSON.stringify(value.const)}`);
+        if (value.minItems != null || value.maxItems != null) details.push(`${value.minItems ?? 0}–${value.maxItems ?? "∞"} items`);
+        if (value.minimum != null || value.maximum != null) details.push(`range ${value.minimum ?? "-∞"}–${value.maximum ?? "∞"}`);
+        return details.length ? [`${label}: ${details.join(", ")}`] : [];
+    });
+    const conditions = [];
+    for (const name of schema.if?.required || []) conditions.push(`${MEDIA_LABELS[name] || name} supplied`);
+    for (const [name, rule] of Object.entries(schema.if?.properties || {})) {
+        if (Object.hasOwn(rule, "const")) conditions.push(`${name} = ${String(rule.const)}`);
+    }
+    if (schema.if) {
+        const subject = conditions.join(" and ") || "the schema condition is met";
+        if (required(schema.then)) lines.push(`${prefix}When ${subject}: require ${required(schema.then)}.`);
+        else if (required(schema.else) && conditions.length) lines.push(`${prefix}When ${subject}: this reference branch is satisfied; other required fields still apply.`);
+        for (const limit of constraints(schema.then)) lines.push(`${prefix}When ${subject}: ${limit}.`);
+        if (required(schema.else)) lines.push(`${prefix}Otherwise: require ${required(schema.else)}.`);
+        for (const limit of constraints(schema.else)) lines.push(`${prefix}Otherwise: ${limit}.`);
+        lines.push(...schemaConditionLines(schema.then, `${prefix}When ${subject}: `));
+        lines.push(...schemaConditionLines(schema.else, `${prefix}Otherwise: `));
+    }
+    for (const item of schema.allOf || []) lines.push(...schemaConditionLines(item, prefix));
+    return lines;
+}
+
+function nestedSchemaLimits(schema, prefix = "", depth = 0) {
+    if (!schema || depth > 3) return [];
+    const lines = [];
+    if (schema.type === "array" && schema.items) {
+        lines.push(...nestedSchemaLimits(schema.items, `${prefix}each item`, depth + 1));
+    }
+    for (const [name, property] of Object.entries(schema.properties || {})) {
+        const parts = [];
+        if (property.type) parts.push(property.type);
+        if (property.enum) parts.push(`choices ${property.enum.join(" / ")}`);
+        if (property.minLength != null || property.maxLength != null) parts.push(`characters ${property.minLength ?? 0}–${property.maxLength ?? "∞"}`);
+        if (property.minimum != null || property.maximum != null) parts.push(`range ${property.minimum ?? "-∞"}–${property.maximum ?? "∞"}`);
+        if (property.minItems != null || property.maxItems != null) parts.push(`items ${property.minItems ?? 0}–${property.maxItems ?? "∞"}`);
+        if (property.multipleOf != null) parts.push(`step ${property.multipleOf}`);
+        lines.push(`${prefix ? prefix + "." : ""}${name}: ${parts.join(", ") || "nested field"}${schema.required?.includes(name) ? " · required" : ""}`);
+        lines.push(...nestedSchemaLimits(property, `${prefix ? prefix + "." : ""}${name}`, depth + 1));
+    }
+    return lines;
+}
 
 function normalizeCoreWidgetValues(node) {
     const numericWidgets = {
@@ -499,6 +578,13 @@ function updateModelInfo(node, model) {
             : "1";
         lines.push(`${MEDIA_LABELS[p.name] || p.media_types.join("/")}: ${count} · ${p.required ? "required" : "optional"}`);
     }
+    lines.push("", "MODEL PARAMETERS");
+    for (const p of model.parameters.filter((item) => !item.media_types?.length)) {
+        lines.push(`${p.name}: ${parameterTooltip(p)}${p.required ? " Required." : ""}${p.default != null && p.default !== "" ? ` Default: ${JSON.stringify(p.default)}.` : ""}`);
+        if (["array", "object"].includes(p.type)) {
+            lines.push(...nestedSchemaLimits(model.input_schema?.properties?.[p.name], p.name).map((line) => `  ${line}`));
+        }
+    }
     lines.push("", "OUTPUT");
     for (const name of ["resolution", "aspect_ratio", "duration", "output_format", "batch_size"]) {
         const p = model.parameters.find((p) => p.name === name);
@@ -508,6 +594,8 @@ function updateModelInfo(node, model) {
     if (model.parameters.some((p) => p.name === "resolution")) {
         lines.push("Resolution is the API quality/size tier, not width × height. Framing uses aspect_ratio when supported; otherwise the source media/model determines it.");
     }
+    const conditions = schemaConditionLines(model.input_schema);
+    if (conditions.length) lines.push("", "CONDITIONAL INPUTS", ...conditions);
     if (model.notes?.length) lines.push("", "MODEL NOTES", ...model.notes.map(readableModelNote));
     if (media.length) {
         lines.push("", "PROMPT REFERENCES",
@@ -617,7 +705,7 @@ async function updateCatalogWidgets(node) {
             node.properties?.pryx_comfyui_higgsfield_ui_schema !== NODE_UI_SCHEMA_VERSION;
         if (legacyWorkflow) resetLegacyWidgetValues(node, parameters);
         for (const widget of node.widgets || []) {
-            if (widget.name === "mode") {
+            if (widget.name === "request_mode") {
                 widget.options = widget.options || {};
                 widget.options.values = ["estimate_only", "generate"];
                 if (!widget.options.values.includes(widget.value)) setWidgetValue(node, widget, "estimate_only");

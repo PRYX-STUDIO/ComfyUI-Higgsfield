@@ -222,6 +222,9 @@ def _load_native_image(path: Path) -> Any:
 
 def _load_native_video(path: Path) -> Any:
     candidates = (
+        ("comfy_api.latest", "VideoFromFile"),
+        ("comfy_api.latest._input_impl", "VideoFromFile"),
+        ("comfy_api.input_impl", "VideoFromFile"),
         ("comfy_api.latest._video_types", "VideoFromFile"),
         ("comfy_api.latest.video_types", "VideoFromFile"),
         ("comfy.utils", "VideoFromFile"),

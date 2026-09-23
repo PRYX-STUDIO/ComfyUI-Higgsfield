@@ -1,6 +1,7 @@
 """Every catalog endpoint is exercised with mock HTTP; no credentials or paid calls."""
 
 import json
+import re
 from types import SimpleNamespace
 
 import httpx
@@ -26,12 +27,48 @@ CLASSES = [generation.ImageGenerateEditNode, generation.TextToVideoNode,
 
 def sample_arguments(model):
     result = {"prompt": "Contract test"}
-    for p in model.parameters:
-        if p.required and p.media_types:
-            result[p.name] = "https://cdn.example/input.png"
-    if model.capability.value == "reference_to_video":
-        result["image_urls"] = ["https://cdn.example/input.png"]
-    return normalize_arguments(model, result)
+    def sample(schema):
+        if "default" in schema:
+            return schema["default"]
+        if schema.get("enum"):
+            return schema["enum"][0]
+        kind = schema.get("type")
+        if kind == "string":
+            return "https://cdn.example/input.png" if schema.get("format") == "uri" else "a" * max(1, schema.get("minLength", 1))
+        if kind == "integer":
+            return int(schema.get("minimum", 1))
+        if kind == "number":
+            return float(schema.get("minimum", 1))
+        if kind == "boolean":
+            return False
+        if kind == "array":
+            return [sample(schema["items"])] * max(1, schema.get("minItems", 1))
+        if kind == "object":
+            return {key: sample(schema["properties"][key]) for key in schema.get("required", ())}
+        raise AssertionError(f"Unsupported test schema: {schema}")
+    if model.input_schema:
+        schema = model.input_schema
+        result.update({key: sample(schema["properties"][key]) for key in schema.get("required", ()) if key != "prompt"})
+        if model.capability.value == "reference_to_video" and not any(p.media_types and p.name in result for p in model.parameters):
+            media = next((p for p in model.parameters if p.name == "image_urls"),
+                         next(p for p in model.parameters if p.media_types))
+            result[media.name] = sample(schema["properties"][media.name])
+    else:
+        for p in model.parameters:
+            if p.required and p.media_types:
+                result[p.name] = ["https://cdn.example/input.png"] if p.type == "array" else "https://cdn.example/input.png"
+        if model.capability.value == "reference_to_video":
+            result["image_urls"] = ["https://cdn.example/input.png"]
+    for _ in range(len(model.parameters) + 1):
+        try:
+            return normalize_arguments(model, result)
+        except ValidationError as error:
+            missing = re.search(r"'([^']+)' is a required property", str(error))
+            if not missing or not model.input_schema or missing.group(1) in result:
+                raise
+            name = missing.group(1)
+            result[name] = sample(model.input_schema["properties"][name])
+    raise AssertionError(f"Could not construct a valid sample for {model.id}")
 
 
 @pytest.mark.parametrize("model", CATALOG.models, ids=lambda m: m.id)
@@ -75,12 +112,12 @@ def test_every_model_node_schema_and_http_payload(model, monkeypatch):
     values = {p.name: (json.dumps(expected[p.name]) if p.type in {"array", "object"} else expected[p.name])
               for p in model.parameters if p.name in expected and not p.media_types and p.name != "prompt"}
     refs = ReferenceCollection()
-    if "image_url" in expected:
-        refs.append(Reference("image", url=expected["image_url"]))
-    if "video_url" in expected:
-        refs.append(Reference("video", url=expected["video_url"]))
-    if "image_urls" in expected:
-        refs.extend(Reference("image", url=url) for url in expected["image_urls"])
+    for spec in model.parameters:
+        if spec.name not in expected or not spec.media_types:
+            continue
+        kind = spec.media_types[0]
+        urls = expected[spec.name] if spec.type == "array" else [expected[spec.name]]
+        refs.extend(Reference(kind, url=url, field=spec.name) for url in urls)
     cls().generate(model.id, "Contract test", references=refs, **values)
     args, kw = calls[0]
     mapped = references_to_arguments(model, [r.as_dict() for r in kw.get("references", [])])
@@ -92,10 +129,13 @@ def test_every_model_node_schema_and_http_payload(model, monkeypatch):
 def test_all_documented_defaults_and_invalid_choices(model):
     valid = sample_arguments(model)
     for spec in model.parameters:
-        if spec.default is not None:
+        if spec.default is not None and spec.default != "":
             assert valid[spec.name] == spec.default
         if spec.choices:
             for choice in spec.choices:
+                # A choice can activate another conditional requirement.
+                if model.input_schema and any(key in model.input_schema for key in ("if", "oneOf", "anyOf")):
+                    continue
                 normalize_arguments(model, {**valid, spec.name: choice})
             with pytest.raises(ValidationError):
                 normalize_arguments(model, {**valid, spec.name: "invalid-choice"})
@@ -144,6 +184,39 @@ def test_explicit_start_end_and_source_are_not_swapped_with_collector():
         {"kind": "video", "url": "https://cdn.example/source", "field": "video_url"}])
     assert mapped["video_url"].endswith("/source")
     assert mapped["video_urls"] == ["https://cdn.example/ref"]
+
+
+def test_collector_images_go_to_reference_array_when_source_is_optional():
+    model = CATALOG.get("kling-video-o3-image-reference")
+    mapped = references_to_arguments(model, [
+        {"kind": "image", "url": "https://cdn.example/one"},
+        {"kind": "image", "url": "https://cdn.example/two"},
+    ])
+    assert mapped == {"image_urls": ["https://cdn.example/one", "https://cdn.example/two"]}
+    assert references_to_arguments(model, [{"kind": "image", "url": "https://cdn.example/start", "field": "first_frame_url"}]) == {"first_frame_url": "https://cdn.example/start"}
+
+
+def test_minimax_h3_reference_branches_and_field_limits():
+    model = CATALOG.get("minimax-h3-reference-to-video")
+    image = {"prompt": "test", "image_urls": ["https://cdn.example/image"]}
+    video = {"prompt": "test", "video_urls": ["https://cdn.example/video"]}
+    normalize_arguments(model, image)
+    normalize_arguments(model, video)
+    with pytest.raises(ValidationError):
+        normalize_arguments(model, {"prompt": "test"})
+    for field, limit in (("image_urls", 9), ("video_urls", 3), ("audio_urls", 3)):
+        with pytest.raises(ValidationError):
+            normalize_arguments(model, {**image, field: ["https://cdn.example/item"] * (limit + 1)})
+
+
+def test_provider_mode_does_not_select_paid_generation():
+    model = CATALOG.get("kling-video-o3-first-last-frame")
+    inputs = generation.ImageToVideoNode.INPUT_TYPES()["optional"]
+    assert "mode" in inputs and "request_mode" in inputs
+    assert set(inputs["mode"][0]) >= {"std", "pro", "4k"}
+    assert generation._arguments_for_model(model.id, {"mode": "4k", "request_mode": "estimate_only"}) == {"mode": "4k"}
+    assert generation._arguments_for_model("pixverse-v6-image-to-video", {"duration": 2.5}) == {"duration": 2.5}
+    assert generation._arguments_for_model(model.id, {"duration": 5.0}) == {"duration": 5}
 
 
 def test_json_seed_and_model_capability_guard():

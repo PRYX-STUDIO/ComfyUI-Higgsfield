@@ -19,6 +19,7 @@ class Capability(str, Enum):
     REFERENCE_TO_VIDEO = "reference_to_video"
     VIDEO_EDIT = "video_edit"
     VIDEO_EXTEND = "video_extend"
+    VIDEO_MOTION = "video_motion"
 
 
 class OutputType(str, Enum):
@@ -78,6 +79,9 @@ class ParameterSpec:
     maximum: float | None = None
     min_items: int | None = None
     max_items: int | None = None
+    min_length: int | None = None
+    max_length: int | None = None
+    multiple_of: float | None = None
     description: str = ""
     media_types: tuple[str, ...] = ()
 
@@ -99,6 +103,9 @@ class ParameterSpec:
             maximum=data.get("maximum", data.get("max")),
             min_items=data.get("min_items", data.get("minItems")),
             max_items=data.get("max_items", data.get("maxItems")),
+            min_length=data.get("min_length", data.get("minLength")),
+            max_length=data.get("max_length", data.get("maxLength")),
+            multiple_of=data.get("multiple_of", data.get("multipleOf")),
             description=str(data.get("description", "")),
             media_types=tuple(str(item) for item in media_types),
         )
@@ -121,6 +128,12 @@ class ParameterSpec:
             result["min_items"] = self.min_items
         if self.max_items is not None:
             result["max_items"] = self.max_items
+        if self.min_length is not None:
+            result["min_length"] = self.min_length
+        if self.max_length is not None:
+            result["max_length"] = self.max_length
+        if self.multiple_of is not None:
+            result["multiple_of"] = self.multiple_of
         if self.description:
             result["description"] = self.description
         if self.media_types:
@@ -145,6 +158,7 @@ class ModelSpec:
     docs_checked: str = ""
     status: ModelStatus = ModelStatus.ACTIVE
     notes: tuple[str, ...] = ()
+    input_schema: Mapping[str, Any] | None = None
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "ModelSpec":
@@ -167,6 +181,7 @@ class ModelSpec:
             docs_checked=str(data.get("docs_checked", "")),
             status=ModelStatus(str(data.get("status", ModelStatus.ACTIVE.value))),
             notes=tuple(data.get("notes", ())),
+            input_schema=data.get("input_schema"),
         )
 
     @property
@@ -182,7 +197,7 @@ class ModelSpec:
         return self.capability.value == value
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "id": self.id,
             "display_name": self.display_name,
             "provider": self.provider,
@@ -199,6 +214,9 @@ class ModelSpec:
             "status": self.status.value,
             "notes": list(self.notes),
         }
+        if self.input_schema is not None:
+            result["input_schema"] = self.input_schema
+        return result
 
 
 @dataclass(frozen=True)

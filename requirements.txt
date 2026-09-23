@@ -1,2 +1,3 @@
 higgsfield-client>=0.2.0,<0.3.0
 httpx>=0.21.0,<0.29.0
+jsonschema>=4.20,<5

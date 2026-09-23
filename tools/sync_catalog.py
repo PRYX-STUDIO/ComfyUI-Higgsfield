@@ -234,30 +234,10 @@ def build_catalog(index_url: str = INDEX_URL) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--index-url", default=INDEX_URL)
-    parser.add_argument("--output", type=Path, default=PROJECT_ROOT / "pryx_comfyui_higgsfield/catalog/models.json")
-    parser.add_argument("--check", action="store_true", help="Fetch and validate without writing.")
-    parser.add_argument("--existing", action="store_true", help="Audit existing model pages, preserving workflow IDs and order.")
-    args = parser.parse_args()
-    if args.existing:
-        payload = json.loads(args.output.read_text(encoding="utf-8"))
-        pages = fetch_many([model["docs_source"] for model in payload["models"]])
-        for model in payload["models"]:
-            parsed = parse_page(model["docs_source"], pages[model["docs_source"]])
-            if not parsed or parsed["endpoint"] != model["endpoint"]:
-                raise RuntimeError(f"Endpoint changed or missing: {model['id']}")
-            for key in ("parameters", "input_media", "max_references", "notes", "docs_checked"):
-                model[key] = parsed[key]
-        payload["catalog_version"] = dt.date.today().isoformat() + ".2"
-        payload["source_date"] = dt.date.today().isoformat()
-        validate_catalog_payload(payload)
-    else:
-        payload = build_catalog(args.index_url)
-    if not args.check:
-        args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"Validated {len(payload['models'])} catalog model(s).")
-    return 0
+    raise SystemExit(
+        "The legacy docs index is incomplete. Use tools/sync_platform_catalog.py "
+        "to audit the public image/video platform and update the bundled catalog."
+    )
 
 
 if __name__ == "__main__":

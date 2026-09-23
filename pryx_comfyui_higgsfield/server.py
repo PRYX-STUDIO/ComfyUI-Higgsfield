@@ -41,7 +41,11 @@ def register_routes() -> None:
     except ImportError:
         return
 
-    _prompt_server = PromptServer.instance
+    _prompt_server = getattr(PromptServer, "instance", None)
+    if _prompt_server is None:
+        # Offline imports may precede ComfyUI server construction. Normal node
+        # loading occurs after the server instance has been initialized.
+        return
     routes = _prompt_server.routes
 
     async def get_settings(request):

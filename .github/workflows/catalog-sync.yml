@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
       - name: Generate catalog
-        run: python tools/sync_catalog.py
+        run: python tools/sync_platform_catalog.py --catalog pryx_comfyui_higgsfield/catalog/models.json --summary
       - name: Open catalog update pull request
         uses: peter-evans/create-pull-request@v7
         with:
@@ -27,4 +27,4 @@ jobs:
           delete-branch: true
           title: "chore: update Higgsfield catalog"
           commit-message: "chore: update Higgsfield catalog"
-          body: "Generated from the official Higgsfield documentation. Review endpoint and limit changes before merging."
+          body: "Generated from the public Higgsfield platform API references. Review endpoint, schema, and limit changes before merging."

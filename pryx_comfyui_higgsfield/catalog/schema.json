@@ -28,11 +28,12 @@
             "enum": [
               "image_generate", "image_edit", "text_to_video",
               "image_to_video", "reference_to_video", "video_edit",
-              "video_extend"
+              "video_extend", "video_motion"
             ]
           },
           "output": { "enum": ["image", "video"] },
           "parameters": { "type": "array" },
+          "input_schema": { "type": "object" },
           "input_media": { "type": "array", "items": { "type": "string" } },
           "max_references": { "type": ["integer", "null"], "minimum": 1 },
           "result_field": { "type": "string" },

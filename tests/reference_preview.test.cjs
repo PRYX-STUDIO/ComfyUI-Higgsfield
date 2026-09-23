@@ -23,6 +23,7 @@ function fixture() {
         return element;
     } } };
     vm.createContext(context);
+    vm.runInContext(source.slice(source.indexOf('const PARAMETER_HINTS ='), source.indexOf('function modelTooltip')), context);
     vm.runInContext(source.slice(source.indexOf('const MEDIA_LABELS ='), source.indexOf('function updateModelCatalogNode')), context);
     vm.runInContext(source.slice(source.indexOf('function attachReferencePreview'), source.indexOf('app.registerExtension')), context);
     vm.runInContext(source.slice(source.indexOf('const COLLECTOR_SLOT_LIMITS'), source.indexOf('function attachReferencePreview')), context);
@@ -107,6 +108,21 @@ test('every reference-capable model has ordering guidance', () => {
         context.updateModelInfo(node, model);
         assert.match(node.widgets[0].__pryxInfoElement.textContent, /PROMPT REFERENCES/, model.id);
     }
+});
+
+test('conditional media limits and provider mode are visible for supported models', () => {
+    const { context, node } = fixture();
+    context.updateModelInfo(node, models.find(m => m.id === 'minimax-h3-reference-to-video'));
+    const info = node.widgets[0].__pryxInfoElement.textContent;
+    assert.match(info, /Reference images: 1–9/);
+    assert.match(info, /Reference videos: 1–3/);
+    assert.match(info, /Otherwise: require reference videos/i);
+    const kling = models.find(m => m.id === 'kling-video-o3-first-last-frame');
+    assert.match(context.parameterTooltip(kling.parameters.find(p => p.name === 'mode')), /Provider quality tier/);
+    assert.match(context.parameterTooltip(kling.parameters.find(p => p.name === 'mode')), /std, pro, 4k/);
+    context.updateModelInfo(node, models.find(m => m.id === 'marketing-studio-image'));
+    assert.match(node.widgets[0].__pryxInfoElement.textContent, /quality: must equal "high"/);
+    assert.match(node.widgets[0].__pryxInfoElement.textContent, /Reference images: 1–2 items/);
 });
 
 test('preview displays backend mapping as text and identifies it as last execution', () => {

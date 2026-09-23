@@ -13,6 +13,7 @@ authors = [{ name = "PRYX Studio" }]
 dependencies = [
   "higgsfield-client>=0.2.0,<0.3.0",
   "httpx>=0.21.0,<0.29.0",
+  "jsonschema>=4.20,<5",
 ]
 
 [project.urls]
@@ -30,6 +31,8 @@ FrontendVersion = ">=1.53.6"
 
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["pryx_comfyui_higgsfield*"]
+namespaces = false
 
 [tool.setuptools.package-data]
 pryx_comfyui_higgsfield = ["catalog/*.json", "web/js/*.js"]

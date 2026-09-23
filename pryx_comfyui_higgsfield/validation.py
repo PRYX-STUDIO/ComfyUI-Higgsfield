@@ -8,6 +8,9 @@ from collections.abc import Mapping
 from typing import Any, Iterable
 from urllib.parse import urlsplit
 
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
+
 from .errors import ValidationError
 from .types import ModelSpec, ParameterSpec
 
@@ -39,10 +42,10 @@ def normalize_arguments(
 
     normalized: dict[str, Any] = {}
     for name, value in arguments.items():
-        if value is not None:
+        if value is not None and not (value == "" and name in known and not known[name].required):
             normalized[str(name)] = value
     for name, spec in known.items():
-        if name not in normalized and spec.default is not None:
+        if name not in normalized and spec.default is not None and (spec.default != "" or spec.required):
             normalized[name] = spec.default
     validate_arguments(model, normalized, allow_unknown=allow_unknown)
     return normalized
@@ -69,10 +72,19 @@ def validate_arguments(
             continue
         _validate_value(spec, arguments[name])
     _validate_combinations(model, arguments)
+    if model.input_schema is not None:
+        try:
+            validator = Draft202012Validator(model.input_schema)
+            error = next(validator.iter_errors(dict(arguments)), None)
+        except SchemaError as error:
+            raise ValidationError(f"Invalid catalog schema for {model.display_name}.") from error
+        if error is not None:
+            location = ".".join(map(str, error.absolute_path)) or "request"
+            raise ValidationError(f"{location}: {error.message}")
 
 
 def _validate_combinations(model: ModelSpec, arguments: Mapping[str, Any]) -> None:
-    if model.capability.value == "reference_to_video":
+    if model.capability.value == "reference_to_video" and model.input_schema is None:
         fields = [p.name for p in model.parameters if p.media_types]
         if model.id == "seedance-2-reference-to-video":
             fields = ["image_urls", "video_urls"]
@@ -86,15 +98,16 @@ def _validate_combinations(model: ModelSpec, arguments: Mapping[str, Any]) -> No
     if model.id.startswith("kling-"):
         if arguments.get("multi_shots") and not arguments.get("multi_prompt"):
             raise ValidationError("multi_shots requires multi_prompt shot definitions.")
-        for shot in arguments.get("multi_prompt", []):
-            if not isinstance(shot, Mapping) or not isinstance(shot.get("prompt"), str) or not 1 <= len(shot["prompt"]) <= 512:
-                raise ValidationError("Each multi_prompt shot requires a prompt of 1–512 characters.")
-            duration = shot.get("duration")
-            if type(duration) is not int or not 1 <= duration <= 15:
-                raise ValidationError("Each multi_prompt shot requires an integer duration of 1–15 seconds.")
-        if any(not isinstance(item, str) for item in arguments.get("elements", [])):
-            raise ValidationError("elements must contain Kling element ID strings.")
-    if model.id == "recraft-v4-1-pro":
+        if model.input_schema is None:
+            for shot in arguments.get("multi_prompt", []):
+                if not isinstance(shot, Mapping) or not isinstance(shot.get("prompt"), str) or not 1 <= len(shot["prompt"]) <= 512:
+                    raise ValidationError("Each multi_prompt shot requires a prompt of 1–512 characters.")
+                duration = shot.get("duration")
+                if type(duration) is not int or not 1 <= duration <= 15:
+                    raise ValidationError("Each multi_prompt shot requires an integer duration of 1–15 seconds.")
+            if any(not isinstance(item, str) for item in arguments.get("elements", [])):
+                raise ValidationError("elements must contain Kling element ID strings.")
+    if model.id == "recraft-v4-1-pro" and model.input_schema is None:
         colors = list(arguments.get("colors", []))
         if "background_color" in arguments:
             colors.append(arguments["background_color"])
@@ -204,23 +217,31 @@ def references_to_arguments(
             remaining.append(item)
             continue
         spec = params.get(field)
-        if not spec or item["kind"] not in spec.media_types or spec.type == "array" or field in result:
+        if not spec or item["kind"] not in spec.media_types or (spec.type != "array" and field in result):
             raise ValidationError(f"Unsupported or duplicate reference input: {field}")
-        result[field] = item["url"]
+        if spec.type == "array":
+            result.setdefault(field, []).append(item["url"])
+        else:
+            result[field] = item["url"]
     singular_fields = {
-        "image": ("image_url", "end_image_url", "last_image_url"),
+        "image": ("image_url", "first_frame_url", "end_image_url", "last_image_url", "last_frame_url"),
         "video": ("video_url",), "audio": ("audio_url",),
         "file": ("file_url",), "url": ("link_url",),
     }
     for item in remaining:
         kind, url = item["kind"], item["url"]
-        field = next((name for name in singular_fields[kind] if name in params and name not in result), None)
+        plural = f"{kind}_urls"
+        field = next((name for name in singular_fields[kind] if name in params and name not in result and params[name].required), None)
         if field:
             result[field] = url
-        elif f"{kind}_urls" in params:
-            result.setdefault(f"{kind}_urls", []).append(url)
+        elif plural in params:
+            result.setdefault(plural, []).append(url)
         else:
-            raise ValidationError(f"Too many {kind} references for {model.display_name}; no input may be silently discarded.")
+            field = next((name for name in singular_fields[kind] if name in params and name not in result), None)
+            if field:
+                result[field] = url
+            else:
+                raise ValidationError(f"Too many {kind} references for {model.display_name}; no input may be silently discarded.")
     for name, value in result.items():
         _validate_value(params[name], value)
     return result

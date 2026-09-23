@@ -41,8 +41,9 @@ media.
 - Python `3.10` through `3.13`
 - A Higgsfield API account with an API key ID and secret
 
-The package uses the official `higgsfield-client` transport together with
-`httpx`. ComfyUI normally already provides the media libraries needed by its
+The package includes the official `higgsfield-client` dependency and uses its
+own `httpx` request wrapper for estimates, uploads, polling, and downloads.
+ComfyUI normally already provides the media libraries needed by its
 native `IMAGE`, `VIDEO`, and `AUDIO` types.
 
 ## Installation
@@ -81,6 +82,11 @@ Open **ComfyUI Settings → PRYX ComfyUI Higgsfield → Credentials** and enter:
 - **Key ID** — your Higgsfield API key ID
 - **Secret** — your Higgsfield API secret
 
+A UUID-shaped key ID is only the identifier, not the complete credential.
+The API sends `Authorization: Key <key-id>:<secret>`. Copy the secret when
+creating the key in Higgsfield; if you only have the ID, create a new key and
+store both values. Never put either value in a workflow or issue report.
+
 The **Validate estimate** button checks the credentials with an estimate
 request. It does not submit a paid generation. **Save locally** stores the
 credentials in the active ComfyUI user directory. The secret is cleared from
@@ -111,9 +117,9 @@ See [SECURITY.md](SECURITY.md) for the credential and request-safety details.
    match that model.
 4. Connect a prompt. The prompt input accepts a normal text connection, so a
    Config UI Prompt node can be used for long prompts.
-5. Leave **mode** at `estimate_only` and queue the workflow.
+5. Leave **request_mode** at `estimate_only` and queue the workflow.
 6. Read the `credits`, `usd`, and `status` outputs.
-7. If the estimate is acceptable, switch **mode** to `generate`, optionally set
+7. If the estimate is acceptable, switch **request_mode** to `generate`, optionally set
    a positive **max_usd** limit, and queue the workflow again.
 8. Connect `video` or `images` to the corresponding native ComfyUI output/save
    node. Video results can be connected to a compatible Save Video node.
@@ -265,7 +271,7 @@ model-specific widgets and validate their values individually.
 
 - `model` — catalog model ID
 - `arguments_json` — JSON object containing the model's request fields
-- `mode`, `max_usd`, `auto_save`, `timeout` — common safety controls
+- `request_mode`, `max_usd`, `auto_save`, `timeout` — common safety controls
 
 **Outputs:** `image`, `video`, `remote_urls`, `request_id`, `credits`, `usd`,
 `status`
@@ -378,9 +384,12 @@ are estimates, not a final billing receipt or account balance.
 ## Model catalog
 
 The bundled catalog is the single source for model IDs, endpoint paths,
-supported inputs, choices, ranges, defaults, and documentation links. The
-current bundled revision is `2026-09-21.2` with 25 documented endpoint
-entries: six image entries and nineteen video entries.
+supported inputs, choices, ranges, defaults, conditional requirements, and
+documentation links. Revision `2026-09-23.5` has 81 endpoint entries: 80
+discovered from the public image/video Explore pages and their model families,
+plus one separately documented SOUL Cinema endpoint. This is an inventory of
+the public image/video references at the audit date, not a promise that an
+account has access to every endpoint or that Higgsfield exposes no other models.
 
 The table below is a snapshot of this bundled revision, not a provider-wide
 inventory. The live dropdown in each node is authoritative for the catalog
@@ -390,18 +399,29 @@ loaded by that ComfyUI installation.
 
 | Capability | Bundled examples |
 | --- | --- |
-| Image generation | SOUL 2, SOUL Cinema, SOUL, Recraft V4.1 Pro |
-| Image editing | Marketing Studio Image, Grok Image 2.0 |
-| Text to video | Seedance 2.0, Seedance 2.5, Kling 3.0 Standard/Pro/4K/Turbo, Wan 3.0 |
-| Image to video | Seedance 2.0, Seedance 2.5, Kling 3.0 Standard/Pro/4K/Turbo, Wan 3.0 |
-| Reference to video | Seedance 2.0, Seedance 2.5, Wan 3.0 |
-| Video edit | Seedance 2.5 |
-| Video extend | Seedance 2.5 |
+| Image generation (10) | SOUL, Recraft, Ideogram, Z-Image |
+| Image editing (5) | Marketing Studio, Grok Image |
+| Text to video (19) | MiniMax H3, Seedance, Kling, Wan, PixVerse |
+| Image to video (22) | MiniMax H3, Seedance, Kling, Wan, PixVerse |
+| Reference to video (15) | MiniMax H3, Seedance, Kling Omni, Wan |
+| Video edit (5) | Seedance, Kling Omni |
+| Motion/control (4) | Kling motion-control models, in Video Edit |
+| Video extend (1) | Seedance |
 
-The catalog is checked against the official Higgsfield documentation and API
-host allowlist. A background refresh may run at most once per 24 hours. Remote
-data is accepted only after schema, ID, endpoint, and documentation validation;
-if refresh fails, the last valid catalog remains active.
+Each public platform entry includes the API reference's JSON input schema.
+The backend checks required fields, choices, nested JSON, conditions, and
+per-input limits before uploading local media. The collapsed model-information
+panel lists the selected endpoint's media counts and options; the widgets show
+its choices and tooltips. For Kling variants, provider `mode` (such as `std`
+or `pro`) is distinct from the node's `request_mode` (estimate or generate).
+
+A manual catalog refresh downloads the published PRYX catalog, not live model
+pages. Restart ComfyUI afterward so the Python nodes and browser UI use the
+same revision. The scheduled drift check audits the public Higgsfield platform
+references; a partial inventory fails instead of replacing the bundled catalog.
+Remote data is accepted only after schema, ID, endpoint, and documentation
+validation. Account access and media acceptance are ultimately decided by
+Higgsfield.
 
 Model availability is capability-specific. A model can be available for one
 Higgsfield task and still be absent from another node when the provider does
@@ -487,7 +507,7 @@ python -m compileall -q pryx_comfyui_higgsfield tools __init__.py
 Validate the catalog against the official documentation pages:
 
 ```powershell
-python tools/sync_catalog.py --check
+python tools/sync_platform_catalog.py --catalog pryx_comfyui_higgsfield/catalog/models.json --check --summary
 ```
 
 The test suite uses mocks and does not send paid generation requests. A live

@@ -23,3 +23,5 @@ jobs:
         run: python -m compileall -q pryx_comfyui_higgsfield tools __init__.py
       - name: Unit and mock integration tests
         run: python -m pytest -q
+      - name: Frontend contract tests
+        run: node --test tests/reference_preview.test.cjs

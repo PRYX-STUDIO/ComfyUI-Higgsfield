@@ -9,6 +9,8 @@ import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Mapping
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from urllib.parse import urlsplit
@@ -157,6 +159,9 @@ def validate_catalog_payload(payload: Mapping[str, Any]) -> None:
             output = str(model["output"])
             if output not in {"image", "video"}:
                 raise ValueError(output)
+            expected_output = "image" if model["capability"] in {"image_generate", "image_edit"} else "video"
+            if output != expected_output:
+                raise ValueError(f"{model['capability']} cannot produce {output}")
         except ValueError as error:
             raise CatalogError(f"Unsupported catalog enum in {model_id}.") from error
         parameters = model["parameters"]
@@ -170,12 +175,32 @@ def validate_catalog_payload(payload: Mapping[str, Any]) -> None:
             if name in parameter_names:
                 raise CatalogError(f"Duplicate parameter {name} in {model_id}.")
             parameter_names.add(name)
-            for key in ("minimum", "maximum", "min_items", "max_items"):
+            for key in ("minimum", "maximum", "min_items", "max_items", "min_length", "max_length", "multiple_of"):
                 if key in parameter and not isinstance(parameter[key], (int, float)):
                     raise CatalogError(f"Invalid {key} in {model_id}.{name}.")
         docs_source = str(model["docs_source"])
-        if not docs_source.startswith("https://docs.higgsfield.ai/"):
+        if not docs_source.startswith(("https://docs.higgsfield.ai/", "https://open.higgsfield.ai/models/")):
             raise CatalogError(f"Catalog docs source is not official: {model_id}")
+        input_schema = model.get("input_schema")
+        if input_schema is not None:
+            if not isinstance(input_schema, Mapping) or input_schema.get("type") != "object":
+                raise CatalogError(f"Invalid input schema: {model_id}")
+            if set(input_schema.get("properties", {})) != parameter_names:
+                raise CatalogError(f"Input schema and parameters disagree: {model_id}")
+            def reject_remote_refs(value):
+                if isinstance(value, Mapping):
+                    if any(key in value for key in ("$ref", "$dynamicRef", "$id")):
+                        raise CatalogError(f"Remote schema references are forbidden: {model_id}")
+                    for child in value.values():
+                        reject_remote_refs(child)
+                elif isinstance(value, list):
+                    for child in value:
+                        reject_remote_refs(child)
+            reject_remote_refs(input_schema)
+            try:
+                Draft202012Validator.check_schema(input_schema)
+            except SchemaError as error:
+                raise CatalogError(f"Invalid JSON Schema in {model_id}.") from error
 
 
 def _validate_endpoint(endpoint: Any) -> None:

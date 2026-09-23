@@ -31,6 +31,7 @@ def reference_prompt(model, references, prompt):
         field, index = targets[markers[i]]
         token = f"{KINDS[ref.kind]} {index}" if field.endswith("_urls") else {
             "image_url": "Start/source image", "end_image_url": "End image",
+            "first_frame_url": "Start/source image", "last_frame_url": "End image",
             "last_image_url": "End image", "video_url": "Source video",
             "audio_url": "Audio track", "file_url": "Document", "link_url": "Web page",
         }.get(field, field)

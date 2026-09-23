@@ -26,3 +26,22 @@ def test_catalog_rejects_non_api_endpoint():
     payload["models"][0]["endpoint"] = "https://example.invalid/generation"
     with pytest.raises(CatalogError):
         validate_catalog_payload(payload)
+
+
+def test_catalog_rejects_video_capability_with_image_output():
+    payload = load_bundled_catalog().as_payload()
+    video = next(model for model in payload["models"] if model["capability"] == "image_to_video")
+    video["output"] = "image"
+    with pytest.raises(CatalogError):
+        validate_catalog_payload(payload)
+
+
+def test_catalog_rejects_invalid_or_remote_json_schema():
+    payload = load_bundled_catalog().as_payload()
+    payload["models"][0]["input_schema"]["properties"]["prompt"]["type"] = "imaginary"
+    with pytest.raises(CatalogError):
+        validate_catalog_payload(payload)
+    payload = load_bundled_catalog().as_payload()
+    payload["models"][0]["input_schema"]["properties"]["prompt"]["$ref"] = "https://evil.invalid/schema"
+    with pytest.raises(CatalogError):
+        validate_catalog_payload(payload)

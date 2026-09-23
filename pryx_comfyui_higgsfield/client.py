@@ -37,8 +37,8 @@ class HiggsfieldClient:
         upload_client: httpx.Client | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
-        if not credentials.authorization_key:
-            raise CredentialError("Higgsfield credentials are empty.")
+        if not credentials.key_id or not credentials.secret:
+            raise CredentialError("Both the Higgsfield key ID and secret are required.")
         self.credentials = credentials
         self.base_url = base_url.rstrip("/")
         self.timeout = float(timeout)

@@ -28,7 +28,7 @@ class Credentials:
 
     @property
     def authorization_key(self) -> str:
-        return f"{self.key_id}:{self.secret}" if self.secret else self.key_id
+        return f"{self.key_id}:{self.secret}"
 
     def __repr__(self) -> str:
         return f"Credentials(key_id={mask_key_id(self.key_id)!r}, source={self.source!r})"
@@ -138,12 +138,9 @@ def _restrict_file(path: str | os.PathLike[str]) -> None:
 
 
 def _from_hf_key(value: str, source: str) -> Credentials:
-    if ":" in value:
-        key_id, secret = value.split(":", 1)
-    else:
-        key_id, secret = value, ""
-    if not key_id:
-        raise CredentialError("The Higgsfield API key is empty.")
+    key_id, separator, secret = value.partition(":")
+    if not separator or not key_id or not secret:
+        raise CredentialError("HF_KEY must contain both the Higgsfield key ID and secret, separated by a colon.")
     return Credentials(key_id=key_id, secret=secret, source=source)
 
 
